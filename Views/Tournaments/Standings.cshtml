@@ -1,0 +1,109 @@
+@{
+    ViewData["Title"] = $"Турнирная таблица - {ViewBag.Tournament.Name}";
+    var tournament = ViewBag.Tournament as TournamentApp.Models.Tournament;
+    var standings = ViewBag.Standings as List<TournamentApp.Services.ParticipantStanding>;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Турнирная таблица</h1>
+        <h4 class="text-muted">@tournament.Name</h4>
+    </div>
+    <div>
+        <a asp-action="Matches" asp-route-id="@tournament.Id" class="btn btn-info">
+            <i class="bi bi-list-check"></i> Матчи турнира
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Назад к турнирам
+        </a>
+    </div>
+</div>
+
+@if (!standings.Any())
+{
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Таблица пуста</h4>
+        <p>В этом турнире пока нет сыгранных матчей для формирования таблицы.</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col" width="50">#</th>
+                            <th scope="col">Участник</th>
+                            <th scope="col" class="text-center">И</th>
+                            <th scope="col" class="text-center">В</th>
+                            <th scope="col" class="text-center">Н</th>
+                            <th scope="col" class="text-center">П</th>
+                            <th scope="col" class="text-center">Мячи</th>
+                            <th scope="col" class="text-center">Разница</th>
+                            <th scope="col" class="text-center">Очки</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < standings.Count; i++)
+                        {
+                            var standing = standings[i];
+                            var position = i + 1;
+                            var rowClass = position <= 3 ? "table-success" : 
+                                          position == standings.Count ? "table-danger" : "";
+                            
+                            <tr class="@rowClass">
+                                <td class="fw-bold">
+                                    @if (position == 1)
+                                    {
+                                        <span class="badge bg-warning">1</span>
+                                    }
+                                    else if (position == 2)
+                                    {
+                                        <span class="badge bg-secondary">2</span>
+                                    }
+                                    else if (position == 3)
+                                    {
+                                        <span class="badge bg-bronze">3</span>
+                                    }
+                                    else
+                                    {
+                                        @position
+                                    }
+                                </td>
+                                <td class="fw-bold">@standing.ParticipantName</td>
+                                <td class="text-center">@standing.MatchesPlayed</td>
+                                <td class="text-center text-success fw-bold">@standing.Wins</td>
+                                <td class="text-center text-warning">@standing.Draws</td>
+                                <td class="text-center text-danger">@standing.Losses</td>
+                                <td class="text-center">@standing.GoalsFor - @standing.GoalsAgainst</td>
+                                <td class="text-center @(standing.GoalDifference > 0 ? "text-success" : standing.GoalDifference < 0 ? "text-danger" : "")">
+                                    @(standing.GoalDifference > 0 ? "+" : "")@standing.GoalDifference
+                                </td>
+                                <td class="text-center fw-bold fs-5">@standing.Points</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Система начисления очков</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><span class="badge bg-success">Победа</span> 3 очка</li>
+                        <li><span class="badge bg-warning">Ничья</span> 1 очко</li>
+                        <li><span class="badge bg-danger">Поражение</span> 0 очков</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+} 

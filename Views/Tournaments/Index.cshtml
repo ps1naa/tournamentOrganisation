@@ -1,0 +1,77 @@
+@model IEnumerable<TournamentApp.Models.Tournament>
+
+@{
+    ViewData["Title"] = "Турниры";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Турниры</h1>
+    <a asp-action="Create" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Создать турнир
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Турниры не найдены</h4>
+        <p>Пока не создано ни одного турнира. <a asp-action="Create" class="alert-link">Создайте первый турнир</a>.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var tournament in Model)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@tournament.Name</h5>
+                        <p class="card-text text-muted">
+                            <small>
+                                <i class="bi bi-calendar"></i> @tournament.StartDate.ToString("dd.MM.yyyy")
+                                @if (tournament.EndDate.HasValue)
+                                {
+                                    <span> - @tournament.EndDate.Value.ToString("dd.MM.yyyy")</span>
+                                }
+                            </small>
+                        </p>
+                        @if (!string.IsNullOrEmpty(tournament.Description))
+                        {
+                            <p class="card-text">@tournament.Description</p>
+                        }
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="bi bi-people"></i> @tournament.TournamentParticipants.Count участников
+                            </small>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group" role="group">
+                                <a asp-action="Matches" asp-route-id="@tournament.Id" class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-list-check"></i> Матчи
+                                </a>
+                                <a asp-action="Standings" asp-route-id="@tournament.Id" class="btn btn-outline-success btn-sm">
+                                    <i class="bi bi-trophy"></i> Таблица
+                                </a>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@tournament.Id">
+                                        <i class="bi bi-pencil"></i> Редактировать
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@tournament.Id">
+                                        <i class="bi bi-trash"></i> Удалить
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+} 

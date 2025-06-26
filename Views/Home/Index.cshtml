@@ -1,0 +1,38 @@
+﻿@{
+    ViewData["Title"] = "Система проведения турниров";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Система проведения турниров</h1>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Турниры</h5>
+                <p class="card-text">Управление турнирами, создание новых событий и просмотр существующих.</p>
+                <a asp-controller="Tournaments" asp-action="Index" class="btn btn-primary">Перейти к турнирам</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Участники</h5>
+                <p class="card-text">Управление участниками турниров, добавление новых игроков.</p>
+                <a asp-controller="Participants" asp-action="Index" class="btn btn-primary">Перейти к участникам</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Создать турнир</h5>
+                <p class="card-text">Создать новый турнир с участниками и автоматической генерацией матчей.</p>
+                <a asp-controller="Tournaments" asp-action="Create" class="btn btn-success">Создать турнир</a>
+            </div>
+        </div>
+    </div>
+</div>
+

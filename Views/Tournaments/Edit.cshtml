@@ -1,0 +1,88 @@
+@model TournamentApp.Models.Tournament
+
+@{
+    ViewData["Title"] = "Редактировать турнир";
+}
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h2>Редактировать турнир</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Название турнира *</label>
+                        <input asp-for="Name" class="form-control" placeholder="Введите название турнира" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="StartDate" class="form-label">Дата начала *</label>
+                                <input asp-for="StartDate" class="form-control" type="date" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="EndDate" class="form-label">Дата окончания</label>
+                                <input asp-for="EndDate" class="form-control" type="date" />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Описание</label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Описание турнира (необязательно)"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Участники турнира</label>
+                        <div class="row">
+                            @foreach (var participant in ViewBag.Participants)
+                            {
+                                var isSelected = Model.TournamentParticipants.Any(tp => tp.ParticipantId == participant.Id);
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="participantIds" value="@participant.Id" 
+                                               id="participant_@participant.Id" 
+                                               @(isSelected ? "checked" : "") disabled />
+                                        <label class="form-check-label" for="participant_@participant.Id">
+                                            @participant.Name
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Участников турнира нельзя изменить после создания. Для изменения состава создайте новый турнир.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Назад к списку
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

@@ -1,0 +1,54 @@
+@model IEnumerable<TournamentApp.Models.Participant>
+
+@{
+    ViewData["Title"] = "Участники";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Участники</h1>
+    <a asp-action="Create" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Добавить участника
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Участники не найдены</h4>
+        <p>Пока не добавлено ни одного участника. <a asp-action="Create" class="alert-link">Добавьте первого участника</a>.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var participant in Model)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@participant.Name</h5>
+                        @if (!string.IsNullOrEmpty(participant.Email))
+                        {
+                            <p class="card-text">
+                                <i class="bi bi-envelope"></i> 
+                                <a href="mailto:@participant.Email">@participant.Email</a>
+                            </p>
+                        }
+                        @if (!string.IsNullOrEmpty(participant.Phone))
+                        {
+                            <p class="card-text">
+                                <i class="bi bi-telephone"></i> 
+                                <a href="tel:@participant.Phone">@participant.Phone</a>
+                            </p>
+                        }
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> Добавлен @participant.CreatedAt.ToString("dd.MM.yyyy")
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+} 
