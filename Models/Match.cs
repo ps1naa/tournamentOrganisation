@@ -22,6 +22,8 @@ namespace TournamentApp.Models
         
         public bool IsCompleted { get; set; } = false;
         
+        public MatchType Type { get; set; } = MatchType.Group;
+        
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         
         public MatchResult Result
@@ -47,5 +49,12 @@ namespace TournamentApp.Models
         HomeWin,
         AwayWin,
         Draw
+    }
+    
+    public enum MatchType
+    {
+        Group,
+        Playoff,
+        Final
     }
 } 

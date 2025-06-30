@@ -1,0 +1,227 @@
+@model TournamentApp.Models.ParticipantStatistics
+
+@{
+    ViewData["Title"] = $"Статистика - {ViewBag.Participant.Name}";
+    var participant = ViewBag.Participant as TournamentApp.Models.Participant;
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="text-center"><i class="bi bi-person-circle"></i> @participant.Name</h1>
+                <p class="text-muted text-center">Детальная статистика участника</p>
+            </div>
+            <div>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к статистике
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.TotalMatches == 0)
+{
+    <div class="alert alert-info text-center">
+        <h4 class="alert-heading">Нет данных</h4>
+        <p>У этого участника пока нет сыгранных матчей.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0"><i class="bi bi-trophy"></i> Общая статистика</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h2 class="text-info mb-1">@Model.TotalTournaments</h2>
+                                <h6 class="text-muted mb-0">Турниров</h6>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h2 class="text-info mb-1">@Model.TotalMatches</h2>
+                                <h6 class="text-muted mb-0">Матчей</h6>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h2 class="text-primary mb-1">@Model.TotalGoalsScored</h2>
+                                <h6 class="text-muted mb-0">Голов забито</h6>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3">
+                                <h2 class="text-secondary mb-1">@Model.TotalGoalsConceded</h2>
+                                <h6 class="text-muted mb-0">Голов пропущено</h6>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 bg-success bg-opacity-10">
+                                <h2 class="text-success mb-1">@Model.TotalWins</h2>
+                                <h6 class="text-muted mb-0">Побед</h6>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 bg-warning bg-opacity-10">
+                                <h2 class="text-warning mb-1">@Model.TotalDraws</h2>
+                                <h6 class="text-muted mb-0">Ничьи</h6>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 bg-danger bg-opacity-10">
+                                <h2 class="text-danger mb-1">@Model.TotalLosses</h2>
+                                <h6 class="text-muted mb-0">Поражений</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white text-center">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Эффективность</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <h3 class="text-success">@Model.WinPercentage.ToString("F1")%</h3>
+                        <p class="text-muted mb-2">Процент побед</p>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: @(Model.WinPercentage)%" 
+                                 aria-valuenow="@Model.WinPercentage" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <h4 class="@(Model.GoalDifference >= 0 ? "text-success" : "text-danger")">
+                            @(Model.GoalDifference >= 0 ? "+" : "")@Model.GoalDifference
+                        </h4>
+                        <p class="text-muted mb-0">Разность голов</p>
+                    </div>
+                    
+                    @if (Model.TotalMatches > 0)
+                    {
+                        <div>
+                            <h5 class="text-info">@((double)Model.TotalGoalsScored / Model.TotalMatches).ToString("F1")</h5>
+                            <p class="text-muted mb-0">Голов за матч</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white text-center">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Распределение результатов</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <canvas id="resultsChart" width="300" height="300"></canvas>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <div style="width: 20px; height: 20px; background-color: #198754;" class="rounded"></div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">Победы: @Model.TotalWins</h6>
+                                            <small class="text-muted">@((Model.TotalMatches > 0 ? (double)Model.TotalWins / Model.TotalMatches * 100 : 0).ToString("F1"))%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <div style="width: 20px; height: 20px; background-color: #ffc107;" class="rounded"></div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">Ничьи: @Model.TotalDraws</h6>
+                                            <small class="text-muted">@((Model.TotalMatches > 0 ? (double)Model.TotalDraws / Model.TotalMatches * 100 : 0).ToString("F1"))%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <div style="width: 20px; height: 20px; background-color: #dc3545;" class="rounded"></div>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">Поражения: @Model.TotalLosses</h6>
+                                            <small class="text-muted">@((Model.TotalMatches > 0 ? (double)Model.TotalLosses / Model.TotalMatches * 100 : 0).ToString("F1"))%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-center p-3 border rounded">
+                                        <h5 class="text-primary mb-1">@Model.TotalMatches</h5>
+                                        <small class="text-muted">Всего матчей</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        @if (Model.TotalMatches > 0)
+        {
+            <text>
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            const resultsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Победы', 'Ничьи', 'Поражения'],
+                    datasets: [{
+                        data: [@Model.TotalWins, @Model.TotalDraws, @Model.TotalLosses],
+                        backgroundColor: [
+                            '#198754',
+                            '#ffc107',
+                            '#dc3545'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            </text>
+        }
+    </script>
+} 

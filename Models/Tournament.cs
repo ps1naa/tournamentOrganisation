@@ -11,13 +11,19 @@ namespace TournamentApp.Models
         public string Name { get; set; } = string.Empty;
         
         [Required(ErrorMessage = "Дата начала обязательна")]
-        public DateTime StartDate { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.Today;
         
         public DateTime? EndDate { get; set; }
         
         public string? Description { get; set; }
         
+        [Required(ErrorMessage = "Количество встреч между участниками обязательно")]
+        [Range(1, 5, ErrorMessage = "Количество встреч должно быть от 1 до 5")]
+        public int MatchesPerOpponent { get; set; } = 1;
+        
         public bool IsCompleted { get; set; } = false;
+        
+        public bool PlayoffGenerated { get; set; } = false;
         
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         

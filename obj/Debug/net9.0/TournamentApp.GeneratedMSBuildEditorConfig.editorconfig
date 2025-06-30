@@ -17,73 +17,89 @@ build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = TournamentApp
 build_property.RootNamespace = TournamentApp
-build_property.ProjectDir = C:\Users\HONOR\Desktop\tournament\TournamentApp\
+build_property.ProjectDir = C:\Users\HONOR\Documents\GitHub\tournamentOrganisation\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 9.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\HONOR\Desktop\tournament\TournamentApp
+build_property.MSBuildProjectDirectory = C:\Users\HONOR\Documents\GitHub\tournamentOrganisation
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 9.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Home/Index.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Matches/Edit.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Matches/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTWF0Y2hlc1xFZGl0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Participants/Create.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Participants/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGFydGljaXBhbnRzXENyZWF0ZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Participants/Index.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Participants/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGFydGljaXBhbnRzXERlbGV0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Participants/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGFydGljaXBhbnRzXEVkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Participants/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGFydGljaXBhbnRzXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Shared/Error.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Shared/_ValidationScriptsPartial.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Create.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Statistics/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3RhdGlzdGljc1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Statistics/Participant.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3RhdGlzdGljc1xQYXJ0aWNpcGFudC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcQ3JlYXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Delete.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Delete.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcRGVsZXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Edit.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcRWRpdC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Index.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Matches.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Matches.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcTWF0Y2hlcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Tournaments/Standings.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Tournaments/Standings.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVG91cm5hbWVudHNcU3RhbmRpbmdzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/_ViewImports.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/_ViewStart.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/HONOR/Desktop/tournament/TournamentApp/Views/Shared/_Layout.cshtml]
+[C:/Users/HONOR/Documents/GitHub/tournamentOrganisation/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-v6uhkqv4h8

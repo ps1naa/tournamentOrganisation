@@ -8,7 +8,7 @@
     <div class="col-md-6 offset-md-3">
         <div class="card">
             <div class="card-header">
-                <h2>Добавить нового участника</h2>
+                <h2 class="text-center">Добавить нового участника</h2>
             </div>
             <div class="card-body">
                 <form asp-action="Create" method="post">
@@ -28,8 +28,9 @@
                     
                     <div class="mb-3">
                         <label asp-for="Phone" class="form-label">Телефон</label>
-                        <input asp-for="Phone" class="form-control" placeholder="+7 (999) 123-45-67" />
+                        <input asp-for="Phone" id="phone" class="form-control" placeholder="+375 (XX) XXX-XX-XX" />
                         <span asp-validation-for="Phone" class="text-danger"></span>
+                        <div class="form-text">Формат: +375 (XX) XXX-XX-XX</div>
                     </div>
                     
                     <div class="d-flex justify-content-between">
@@ -48,4 +49,31 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        document.getElementById('phone').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.startsWith('375')) {
+                value = value.substring(3);
+            }
+            
+            if (value.length >= 2) {
+                value = '+375 (' + value.substring(0, 2) + ') ' + 
+                       (value.length > 2 ? value.substring(2, 5) : '') +
+                       (value.length > 5 ? '-' + value.substring(5, 7) : '') +
+                       (value.length > 7 ? '-' + value.substring(7, 9) : '');
+            } else if (value.length > 0) {
+                value = '+375 (' + value;
+            }
+            
+            e.target.value = value;
+        });
+        
+        document.getElementById('phone').addEventListener('focus', function (e) {
+            if (e.target.value === '') {
+                e.target.value = '+375 (';
+            }
+        });
+    </script>
 } 

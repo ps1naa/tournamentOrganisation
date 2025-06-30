@@ -5,15 +5,23 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Участники</h1>
+    <h1 class="text-center">Участники</h1>
     <a asp-action="Create" class="btn btn-success">
         <i class="bi bi-plus-circle"></i> Добавить участника
     </a>
 </div>
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 @if (!Model.Any())
 {
-    <div class="alert alert-info">
+    <div class="alert alert-info text-center">
         <h4 class="alert-heading">Участники не найдены</h4>
         <p>Пока не добавлено ни одного участника. <a asp-action="Create" class="alert-link">Добавьте первого участника</a>.</p>
     </div>
@@ -25,27 +33,40 @@ else
         {
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">@participant.Name</h5>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-center">@participant.Name</h5>
                         @if (!string.IsNullOrEmpty(participant.Email))
                         {
-                            <p class="card-text">
+                            <p class="card-text text-center">
                                 <i class="bi bi-envelope"></i> 
                                 <a href="mailto:@participant.Email">@participant.Email</a>
                             </p>
                         }
                         @if (!string.IsNullOrEmpty(participant.Phone))
                         {
-                            <p class="card-text">
+                            <p class="card-text text-center">
                                 <i class="bi bi-telephone"></i> 
                                 <a href="tel:@participant.Phone">@participant.Phone</a>
                             </p>
                         }
-                        <p class="card-text">
+                        <p class="card-text text-center">
                             <small class="text-muted">
                                 <i class="bi bi-calendar"></i> Добавлен @participant.CreatedAt.ToString("dd.MM.yyyy")
                             </small>
                         </p>
+                        <div class="mt-auto">
+                            <div class="btn-group w-100" role="group">
+                                <a asp-action="Edit" asp-route-id="@participant.Id" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-pencil"></i> Изменить
+                                </a>
+                                <a asp-controller="Statistics" asp-action="Participant" asp-route-id="@participant.Id" class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-graph-up"></i> Статистика
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@participant.Id" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

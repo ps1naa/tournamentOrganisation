@@ -8,7 +8,7 @@
     <div class="col-md-8 offset-md-2">
         <div class="card">
             <div class="card-header">
-                <h2>Создать новый турнир</h2>
+                <h2 class="text-center">Создать новый турнир</h2>
             </div>
             <div class="card-body">
                 <form asp-action="Create" method="post">
@@ -24,7 +24,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="StartDate" class="form-label">Дата начала *</label>
-                                <input asp-for="StartDate" class="form-control" type="date" />
+                                <input asp-for="StartDate" class="form-control" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                                 <span asp-validation-for="StartDate" class="text-danger"></span>
                             </div>
                         </div>
@@ -35,6 +35,19 @@
                                 <span asp-validation-for="EndDate" class="text-danger"></span>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="MatchesPerOpponent" class="form-label">Количество встреч между участниками *</label>
+                        <select asp-for="MatchesPerOpponent" class="form-select">
+                            <option value="1">1 встреча</option>
+                            <option value="2">2 встречи</option>
+                            <option value="3">3 встречи</option>
+                            <option value="4">4 встречи</option>
+                            <option value="5">5 встреч</option>
+                        </select>
+                        <span asp-validation-for="MatchesPerOpponent" class="text-danger"></span>
+                        <div class="form-text">Укажите количество матчей между каждой парой участников</div>
                     </div>
                     
                     <div class="mb-3">

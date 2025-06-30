@@ -1,0 +1,81 @@
+@model TournamentApp.Models.Participant
+
+@{
+    ViewData["Title"] = "Редактировать участника";
+}
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-center">Редактировать участника</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input asp-for="Id" type="hidden" />
+                    <input asp-for="CreatedAt" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Имя участника *</label>
+                        <input asp-for="Name" class="form-control" placeholder="Введите имя участника" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" type="email" placeholder="example@email.com" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label asp-for="Phone" class="form-label">Телефон</label>
+                        <input asp-for="Phone" id="phone" class="form-control" placeholder="+375 (XX) XXX-XX-XX" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                        <div class="form-text">Формат: +375 (XX) XXX-XX-XX</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Назад к списку
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        document.getElementById('phone').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.startsWith('375')) {
+                value = value.substring(3);
+            }
+            
+            if (value.length >= 2) {
+                value = '+375 (' + value.substring(0, 2) + ') ' + 
+                       (value.length > 2 ? value.substring(2, 5) : '') +
+                       (value.length > 5 ? '-' + value.substring(5, 7) : '') +
+                       (value.length > 7 ? '-' + value.substring(7, 9) : '');
+            } else if (value.length > 0) {
+                value = '+375 (' + value;
+            }
+            
+            e.target.value = value;
+        });
+        
+        document.getElementById('phone').addEventListener('focus', function (e) {
+            if (e.target.value === '') {
+                e.target.value = '+375 (';
+            }
+        });
+    </script>
+} 

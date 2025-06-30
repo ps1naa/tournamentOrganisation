@@ -15,6 +15,12 @@ namespace TournamentApp.Services
         Task<List<ParticipantStanding>> GetTournamentStandingsAsync(int tournamentId);
         Task<List<Participant>> GetAllParticipantsAsync();
         Task<Participant> CreateParticipantAsync(Participant participant);
+        Task<Participant?> GetParticipantByIdAsync(int id);
+        Task<bool> UpdateParticipantAsync(int id, Participant participant);
+        Task<bool> DeleteParticipantAsync(int id);
+        Task<ParticipantStatistics> GetParticipantStatisticsAsync(int participantId);
+        Task<List<HeadToHeadStatistics>> GetHeadToHeadStatisticsAsync();
+        Task<bool> GeneratePlayoffAsync(int tournamentId);
     }
     
     public class ParticipantStanding

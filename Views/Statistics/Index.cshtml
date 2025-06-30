@@ -1,0 +1,185 @@
+@{
+    ViewData["Title"] = "Статистика";
+    var participantStats = ViewBag.ParticipantStatistics as List<TournamentApp.Models.ParticipantStatistics>;
+    var headToHeadStats = ViewBag.HeadToHeadStatistics as List<TournamentApp.Models.HeadToHeadStatistics>;
+}
+
+<div class="text-center mb-4">
+    <h1><i class="bi bi-graph-up"></i> Статистика</h1>
+    <p class="text-muted">Общая статистика по участникам и встречам</p>
+</div>
+
+<!-- Навигационные табы -->
+<ul class="nav nav-tabs nav-justified mb-4" id="statsTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="participants-tab" data-bs-toggle="tab" data-bs-target="#participants" 
+                type="button" role="tab" aria-controls="participants" aria-selected="true">
+            <i class="bi bi-people"></i> Статистика участников
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="headtohead-tab" data-bs-toggle="tab" data-bs-target="#headtohead" 
+                type="button" role="tab" aria-controls="headtohead" aria-selected="false">
+            <i class="bi bi-arrows-collapse"></i> Личные встречи
+        </button>
+    </li>
+</ul>
+
+<!-- Содержимое табов -->
+<div class="tab-content" id="statsTabContent">
+    <!-- Статистика участников -->
+    <div class="tab-pane fade show active" id="participants" role="tabpanel" aria-labelledby="participants-tab">
+        @if (participantStats == null || !participantStats.Any())
+        {
+            <div class="alert alert-info text-center">
+                <h4 class="alert-heading">Статистика не найдена</h4>
+                <p>Пока нет данных для отображения статистики участников.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var stats in participantStats.OrderByDescending(s => s.WinPercentage))
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white text-center">
+                                <h5 class="mb-0"><i class="bi bi-person-circle"></i> @stats.ParticipantName</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <h4 class="text-info">@stats.TotalTournaments</h4>
+                                        <small class="text-muted">Турниров</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <h4 class="text-info">@stats.TotalMatches</h4>
+                                        <small class="text-muted">Матчей</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <h5 class="text-success">@stats.TotalWins</h5>
+                                        <small class="text-muted">Побед</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h5 class="text-warning">@stats.TotalDraws</h5>
+                                        <small class="text-muted">Ничьи</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h5 class="text-danger">@stats.TotalLosses</h5>
+                                        <small class="text-muted">Поражений</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <h6 class="text-primary">@stats.TotalGoalsScored</h6>
+                                        <small class="text-muted">Голов</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h6 class="text-secondary">@stats.TotalGoalsConceded</h6>
+                                        <small class="text-muted">Пропущено</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h6 class="@(stats.GoalDifference >= 0 ? "text-success" : "text-danger")">
+                                            @(stats.GoalDifference >= 0 ? "+" : "")@stats.GoalDifference
+                                        </h6>
+                                        <small class="text-muted">Разность</small>
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-center">
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: @(stats.WinPercentage)%" 
+                                             aria-valuenow="@stats.WinPercentage" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Процент побед: <strong>@stats.WinPercentage.ToString("F1")%</strong></small>
+                                </div>
+                            </div>
+                            <div class="card-footer text-center">
+                                <a asp-action="Participant" asp-route-id="@stats.ParticipantId" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Личные встречи -->
+    <div class="tab-pane fade" id="headtohead" role="tabpanel" aria-labelledby="headtohead-tab">
+        @if (headToHeadStats == null || !headToHeadStats.Any())
+        {
+            <div class="alert alert-info text-center">
+                <h4 class="alert-heading">Данные не найдены</h4>
+                <p>Пока нет данных о личных встречах между участниками.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var stats in headToHeadStats.OrderByDescending(s => s.TotalMatches))
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white text-center">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-arrows-collapse"></i> 
+                                    @stats.Participant1Name vs @stats.Participant2Name
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="row align-items-center mb-3">
+                                    <div class="col-5">
+                                        <h6 class="fw-bold">@stats.Participant1Name</h6>
+                                    </div>
+                                    <div class="col-2">
+                                        <h4 class="text-primary">@stats.TotalMatches</h4>
+                                        <small class="text-muted">матчей</small>
+                                    </div>
+                                    <div class="col-5">
+                                        <h6 class="fw-bold">@stats.Participant2Name</h6>
+                                    </div>
+                                </div>
+                                
+                                <div class="row text-center mb-3">
+                                    <div class="col-4">
+                                        <h5 class="text-success">@stats.Participant1Wins</h5>
+                                        <small class="text-muted">Побед</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h5 class="text-warning">@stats.Draws</h5>
+                                        <small class="text-muted">Ничьи</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h5 class="text-success">@stats.Participant2Wins</h5>
+                                        <small class="text-muted">Побед</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="row text-center">
+                                    <div class="col-5">
+                                        <h6 class="text-primary">@stats.Participant1Goals</h6>
+                                        <small class="text-muted">голов</small>
+                                    </div>
+                                    <div class="col-2">
+                                        <h6 class="text-muted">:</h6>
+                                    </div>
+                                    <div class="col-5">
+                                        <h6 class="text-primary">@stats.Participant2Goals</h6>
+                                        <small class="text-muted">голов</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div> 

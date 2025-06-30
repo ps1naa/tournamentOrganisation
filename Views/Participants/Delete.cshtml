@@ -1,0 +1,47 @@
+@model TournamentApp.Models.Participant
+
+@{
+    ViewData["Title"] = "Удалить участника";
+}
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h2 class="text-center mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Удалить участника
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning text-center">
+                    <h4>Вы уверены, что хотите удалить этого участника?</h4>
+                    <p>Это действие нельзя будет отменить.</p>
+                </div>
+                
+                <div class="text-center mb-4">
+                    <h3>@Model.Name</h3>
+                    @if (!string.IsNullOrEmpty(Model.Email))
+                    {
+                        <p><i class="bi bi-envelope"></i> @Model.Email</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Phone))
+                    {
+                        <p><i class="bi bi-telephone"></i> @Model.Phone</p>
+                    }
+                    <p><small class="text-muted">
+                        <i class="bi bi-calendar"></i> Добавлен @Model.CreatedAt.ToString("dd.MM.yyyy")
+                    </small></p>
+                </div>
+                
+                <form asp-action="Delete" method="post" class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Отмена
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Удалить участника
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div> 
