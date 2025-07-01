@@ -21,6 +21,7 @@ namespace TournamentApp.Services
         Task<ParticipantStatistics> GetParticipantStatisticsAsync(int participantId);
         Task<List<HeadToHeadStatistics>> GetHeadToHeadStatisticsAsync();
         Task<bool> GeneratePlayoffAsync(int tournamentId);
+        Task<bool> GenerateFinalAsync(int tournamentId);
     }
     
     public class ParticipantStanding

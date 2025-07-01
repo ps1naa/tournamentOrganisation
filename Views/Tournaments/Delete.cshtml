@@ -83,18 +83,25 @@
                 }
             </div>
             <div class="card-footer">
-                <form asp-action="Delete" method="post">
+                <form asp-action="Delete" method="post" onsubmit="return confirmDelete()">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Id" />
                     <div class="d-flex justify-content-between">
                         <a asp-action="Index" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Отмена
                         </a>
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger" id="deleteButton">
                             <i class="bi bi-trash"></i> Удалить турнир
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+                    </div>
     </div>
+</div>
+
+<script>
+function confirmDelete() {
+    return confirm('Вы действительно хотите удалить этот турнир? Это действие нельзя отменить!\n\nБудут удалены:\n- Все матчи турнира\n- Связи с участниками\n- Вся статистика');
+}
+</script>
 </div> 

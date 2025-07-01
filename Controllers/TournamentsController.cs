@@ -137,26 +137,47 @@ namespace TournamentApp.Controllers
         
         public async Task<IActionResult> Delete(int id)
         {
-            var tournament = await _tournamentService.GetTournamentByIdAsync(id);
-            if (tournament == null)
+            try
             {
-                return NotFound();
+                var tournament = await _tournamentService.GetTournamentByIdAsync(id);
+                if (tournament == null)
+                {
+
+                    TempData["Error"] = $"Турнир с ID {id} не найден в базе данных.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                return View(tournament);
             }
-            
-            return View(tournament);
+            catch (Exception ex)
+            {
+
+                TempData["Error"] = $"Ошибка при получении турнира: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
         }
         
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var success = await _tournamentService.DeleteTournamentAsync(id);
-            if (!success)
+            try
             {
-                return NotFound();
+                var success = await _tournamentService.DeleteTournamentAsync(id);
+                if (!success)
+                {
+                    TempData["Error"] = $"Не удалось удалить турнир с ID {id}. Возможно, он уже был удален.";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                TempData["Success"] = "Турнир успешно удален!";
+                return RedirectToAction(nameof(Index));
             }
-            
-            return RedirectToAction(nameof(Index));
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Ошибка при удалении турнира: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
         }
         
         [HttpPost]

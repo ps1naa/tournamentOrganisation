@@ -75,20 +75,20 @@ else
                             </div>
                             <div class="card-body text-center">
                                 <div class="row align-items-center">
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h6 class="mb-0">@match.HomeParticipant.Name</h6>
                                     </div>
-                                    <div class="col-2">
+                                    <div class="col-4 text-center">
                                         @if (match.IsCompleted)
                                         {
-                                            <h4 class="mb-0 fw-bold">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h4>
+                                            <h5 class="mb-0 fw-bold" style="white-space: nowrap;">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h5>
                                         }
                                         else
                                         {
-                                            <h4 class="mb-0 text-muted">vs</h4>
+                                            <h5 class="mb-0 text-muted">vs</h5>
                                         }
                                     </div>
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h6 class="mb-0">@match.AwayParticipant.Name</h6>
                                     </div>
                                 </div>
@@ -162,20 +162,20 @@ else
                             </div>
                             <div class="card-body text-center">
                                 <div class="row align-items-center">
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h6 class="mb-0 fw-bold">@match.HomeParticipant.Name</h6>
                                     </div>
-                                    <div class="col-2">
+                                    <div class="col-4 text-center">
                                         @if (match.IsCompleted)
                                         {
-                                            <h3 class="mb-0 fw-bold text-primary">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h3>
+                                            <h4 class="mb-0 fw-bold text-primary" style="white-space: nowrap;">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h4>
                                         }
                                         else
                                         {
-                                            <h3 class="mb-0 text-muted">vs</h3>
+                                            <h4 class="mb-0 text-muted">vs</h4>
                                         }
                                     </div>
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h6 class="mb-0 fw-bold">@match.AwayParticipant.Name</h6>
                                     </div>
                                 </div>
@@ -249,20 +249,20 @@ else
                             </div>
                             <div class="card-body text-center">
                                 <div class="row align-items-center">
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h5 class="mb-0 fw-bold">@match.HomeParticipant.Name</h5>
                                     </div>
-                                    <div class="col-2">
+                                    <div class="col-4 text-center">
                                         @if (match.IsCompleted)
                                         {
-                                            <h2 class="mb-0 fw-bold text-warning">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h2>
+                                            <h3 class="mb-0 fw-bold text-warning" style="white-space: nowrap;">@(match.HomeScore ?? 0) - @(match.AwayScore ?? 0)</h3>
                                         }
                                         else
                                         {
-                                            <h2 class="mb-0 text-muted">vs</h2>
+                                            <h3 class="mb-0 text-muted">vs</h3>
                                         }
                                     </div>
-                                    <div class="col-5">
+                                    <div class="col-4">
                                         <h5 class="mb-0 fw-bold">@match.AwayParticipant.Name</h5>
                                     </div>
                                 </div>

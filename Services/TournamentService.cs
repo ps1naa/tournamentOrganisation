@@ -1,4 +1,6 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using TournamentApp.Data;
 using TournamentApp.Models;
 
@@ -7,376 +9,687 @@ namespace TournamentApp.Services
     public class TournamentService : ITournamentService
     {
         private readonly TournamentDbContext _context;
-        
-        public TournamentService(TournamentDbContext context)
+        private readonly string _connectionString;
+
+        public TournamentService(TournamentDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection") ?? 
+                               throw new ArgumentException("Connection string not found");
         }
-        
+
+        #region Tournament Operations
+
         public async Task<List<Tournament>> GetAllTournamentsAsync()
         {
-            return await _context.Tournaments
-                .Include(t => t.TournamentParticipants)
-                .ThenInclude(tp => tp.Participant)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
+            var tournaments = new List<Tournament>();
+            var tournamentDict = new Dictionary<int, Tournament>();
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetAllTournaments", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var tournamentId = reader.GetInt32("Id");
+
+                if (!tournamentDict.ContainsKey(tournamentId))
+                {
+                    var tournament = new Tournament
+                    {
+                        Id = tournamentId,
+                        Name = reader.GetString("Name"),
+                        StartDate = reader.GetDateTime("StartDate"),
+                        EndDate = reader.IsDBNull("EndDate") ? null : reader.GetDateTime("EndDate"),
+                        Description = reader.IsDBNull("Description") ? null : reader.GetString("Description"),
+                        MatchesPerOpponent = reader.GetInt32("MatchesPerOpponent"),
+                        IsCompleted = reader.GetBoolean("IsCompleted"),
+                        PlayoffGenerated = reader.GetBoolean("PlayoffGenerated"),
+                        CreatedAt = reader.GetDateTime("CreatedAt"),
+                        TournamentParticipants = new List<TournamentParticipant>()
+                    };
+
+                    tournamentDict[tournamentId] = tournament;
+                    tournaments.Add(tournament);
+                }
+
+
+                if (!reader.IsDBNull("ParticipantId"))
+                {
+                    var participant = new Participant
+                    {
+                        Id = reader.GetInt32("ParticipantId"),
+                        Name = reader.GetString("ParticipantName"),
+                        Email = reader.IsDBNull("ParticipantEmail") ? null : reader.GetString("ParticipantEmail"),
+                        Phone = reader.IsDBNull("ParticipantPhone") ? null : reader.GetString("ParticipantPhone"),
+                        CreatedAt = reader.GetDateTime("ParticipantCreatedAt")
+                    };
+
+                    var tournamentParticipant = new TournamentParticipant
+                    {
+                        TournamentId = tournamentId,
+                        ParticipantId = participant.Id,
+                        Participant = participant,
+                        JoinedAt = reader.GetDateTime("JoinedAt")
+                    };
+
+                    tournamentDict[tournamentId].TournamentParticipants.Add(tournamentParticipant);
+                }
+            }
+
+            return tournaments;
         }
-        
+
         public async Task<Tournament?> GetTournamentByIdAsync(int id)
         {
-            return await _context.Tournaments
-                .Include(t => t.TournamentParticipants)
-                .ThenInclude(tp => tp.Participant)
-                .Include(t => t.Matches)
-                .ThenInclude(m => m.HomeParticipant)
-                .Include(t => t.Matches)
-                .ThenInclude(m => m.AwayParticipant)
-                .FirstOrDefaultAsync(t => t.Id == id);
-        }
-        
-        public async Task<Tournament> CreateTournamentAsync(Tournament tournament, List<int> participantIds)
-        {
-            _context.Tournaments.Add(tournament);
-            await _context.SaveChangesAsync();
-            
-            foreach (var participantId in participantIds)
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetTournamentById", connection)
             {
-                var tournamentParticipant = new TournamentParticipant
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", id);
+
+            using var reader = await command.ExecuteReaderAsync();
+
+            Tournament? tournament = null;
+
+
+            if (await reader.ReadAsync())
+            {
+                tournament = new Tournament
                 {
-                    TournamentId = tournament.Id,
-                    ParticipantId = participantId
+                    Id = reader.GetInt32("Id"),
+                    Name = reader.GetString("Name"),
+                    StartDate = reader.GetDateTime("StartDate"),
+                    EndDate = reader.IsDBNull("EndDate") ? null : reader.GetDateTime("EndDate"),
+                    Description = reader.IsDBNull("Description") ? null : reader.GetString("Description"),
+                    MatchesPerOpponent = reader.GetInt32("MatchesPerOpponent"),
+                    IsCompleted = reader.GetBoolean("IsCompleted"),
+                    PlayoffGenerated = reader.GetBoolean("PlayoffGenerated"),
+                    CreatedAt = reader.GetDateTime("CreatedAt"),
+                    TournamentParticipants = new List<TournamentParticipant>(),
+                    Matches = new List<Match>()
                 };
-                _context.TournamentParticipants.Add(tournamentParticipant);
             }
-            
-            for (int round = 0; round < tournament.MatchesPerOpponent; round++)
+
+            if (tournament == null) return null;
+
+
+            if (await reader.NextResultAsync())
             {
-                for (int i = 0; i < participantIds.Count; i++)
+                while (await reader.ReadAsync())
                 {
-                    for (int j = i + 1; j < participantIds.Count; j++)
+                    var participant = new Participant
                     {
-                        var match = new Match
-                        {
-                            TournamentId = tournament.Id,
-                            HomeParticipantId = participantIds[i],
-                            AwayParticipantId = participantIds[j],
-                            Type = TournamentApp.Models.MatchType.Group
-                        };
-                        _context.Matches.Add(match);
-                    }
+                        Id = reader.GetInt32("Id"),
+                        Name = reader.GetString("Name"),
+                        Email = reader.IsDBNull("Email") ? null : reader.GetString("Email"),
+                        Phone = reader.IsDBNull("Phone") ? null : reader.GetString("Phone"),
+                        CreatedAt = reader.GetDateTime("CreatedAt")
+                    };
+
+                    var tournamentParticipant = new TournamentParticipant
+                    {
+                        TournamentId = tournament.Id,
+                        ParticipantId = participant.Id,
+                        Participant = participant,
+                        Tournament = tournament,
+                        JoinedAt = reader.GetDateTime("JoinedAt")
+                    };
+
+                    tournament.TournamentParticipants.Add(tournamentParticipant);
                 }
             }
-            
-            await _context.SaveChangesAsync();
+
+
+            if (await reader.NextResultAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var homeParticipant = new Participant 
+                    { 
+                        Id = reader.GetInt32("HomeParticipantId"), 
+                        Name = reader.GetString("HomeParticipantName") 
+                    };
+                    var awayParticipant = new Participant 
+                    { 
+                        Id = reader.GetInt32("AwayParticipantId"), 
+                        Name = reader.GetString("AwayParticipantName") 
+                    };
+
+                    var match = new Match
+                    {
+                        Id = reader.GetInt32("Id"),
+                        TournamentId = reader.GetInt32("TournamentId"),
+                        HomeParticipantId = reader.GetInt32("HomeParticipantId"),
+                        AwayParticipantId = reader.GetInt32("AwayParticipantId"),
+                        HomeScore = reader.IsDBNull("HomeScore") ? null : reader.GetInt32("HomeScore"),
+                        AwayScore = reader.IsDBNull("AwayScore") ? null : reader.GetInt32("AwayScore"),
+                        PlayedAt = reader.IsDBNull("PlayedAt") ? null : reader.GetDateTime("PlayedAt"),
+                        IsCompleted = reader.GetBoolean("IsCompleted"),
+                        Type = (TournamentApp.Models.MatchType)reader.GetInt32("Type"),
+                        CreatedAt = reader.GetDateTime("CreatedAt"),
+                        Tournament = tournament,
+                        HomeParticipant = homeParticipant,
+                        AwayParticipant = awayParticipant
+                    };
+
+                    tournament.Matches.Add(match);
+                }
+            }
+
             return tournament;
         }
-        
+
+        public async Task<Tournament> CreateTournamentAsync(Tournament tournament, List<int> participantIds)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+
+                using var createCommand = new SqlCommand("sp_CreateTournament", connection, transaction)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                createCommand.Parameters.AddWithValue("@Name", tournament.Name);
+                createCommand.Parameters.AddWithValue("@StartDate", tournament.StartDate);
+                createCommand.Parameters.AddWithValue("@EndDate", (object?)tournament.EndDate ?? DBNull.Value);
+                createCommand.Parameters.AddWithValue("@Description", (object?)tournament.Description ?? DBNull.Value);
+                createCommand.Parameters.AddWithValue("@MatchesPerOpponent", tournament.MatchesPerOpponent);
+
+                using var reader = await createCommand.ExecuteReaderAsync();
+                await reader.ReadAsync();
+                tournament.Id = reader.GetInt32("TournamentId");
+                reader.Close();
+
+
+                using var participantsCommand = new SqlCommand("sp_AddTournamentParticipants", connection, transaction)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                participantsCommand.Parameters.AddWithValue("@TournamentId", tournament.Id);
+                participantsCommand.Parameters.AddWithValue("@ParticipantIds", string.Join(",", participantIds));
+                await participantsCommand.ExecuteNonQueryAsync();
+
+
+                using var matchesCommand = new SqlCommand("sp_CreateTournamentMatches", connection, transaction)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                matchesCommand.Parameters.AddWithValue("@TournamentId", tournament.Id);
+                matchesCommand.Parameters.AddWithValue("@MatchesPerOpponent", tournament.MatchesPerOpponent);
+                await matchesCommand.ExecuteNonQueryAsync();
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+
+            return tournament;
+        }
+
         public async Task<bool> UpdateTournamentAsync(int id, Tournament tournament)
         {
-            var existingTournament = await _context.Tournaments.FindAsync(id);
-            if (existingTournament == null)
-                return false;
-            
-            existingTournament.Name = tournament.Name;
-            existingTournament.StartDate = tournament.StartDate;
-            existingTournament.EndDate = tournament.EndDate;
-            existingTournament.Description = tournament.Description;
-            
-            await _context.SaveChangesAsync();
-            return true;
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_UpdateTournament", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", id);
+            command.Parameters.AddWithValue("@Name", tournament.Name);
+            command.Parameters.AddWithValue("@StartDate", tournament.StartDate);
+            command.Parameters.AddWithValue("@EndDate", (object?)tournament.EndDate ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Description", (object?)tournament.Description ?? DBNull.Value);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            return reader.GetInt32("RowsAffected") > 0;
         }
-        
+
         public async Task<bool> DeleteTournamentAsync(int id)
         {
-            var tournament = await _context.Tournaments
-                .Include(t => t.Matches)
-                .Include(t => t.TournamentParticipants)
-                .FirstOrDefaultAsync(t => t.Id == id);
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-            if (tournament == null)
-                return false;
+            using var command = new SqlCommand("sp_DeleteTournament", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", id);
 
-            _context.Matches.RemoveRange(tournament.Matches);
-            _context.TournamentParticipants.RemoveRange(tournament.TournamentParticipants);
-            _context.Tournaments.Remove(tournament);
-
-            await _context.SaveChangesAsync();
-            return true;
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            return reader.GetInt32("RowsAffected") > 0;
         }
-        
+
+        #endregion
+
+        #region Match Operations
+
         public async Task<List<Match>> GetTournamentMatchesAsync(int tournamentId)
         {
-            return await _context.Matches
-                .Include(m => m.HomeParticipant)
-                .Include(m => m.AwayParticipant)
-                .Where(m => m.TournamentId == tournamentId)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync();
+            var matches = new List<Match>();
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetTournamentMatches", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var homeParticipant = new Participant 
+                { 
+                    Id = reader.GetInt32("HomeParticipantId"), 
+                    Name = reader.GetString("HomeParticipantName") 
+                };
+                var awayParticipant = new Participant 
+                { 
+                    Id = reader.GetInt32("AwayParticipantId"), 
+                    Name = reader.GetString("AwayParticipantName") 
+                };
+
+                var match = new Match
+                {
+                    Id = reader.GetInt32("Id"),
+                    TournamentId = reader.GetInt32("TournamentId"),
+                    HomeParticipantId = reader.GetInt32("HomeParticipantId"),
+                    AwayParticipantId = reader.GetInt32("AwayParticipantId"),
+                    HomeScore = reader.IsDBNull("HomeScore") ? null : reader.GetInt32("HomeScore"),
+                    AwayScore = reader.IsDBNull("AwayScore") ? null : reader.GetInt32("AwayScore"),
+                    PlayedAt = reader.IsDBNull("PlayedAt") ? null : reader.GetDateTime("PlayedAt"),
+                    IsCompleted = reader.GetBoolean("IsCompleted"),
+                    Type = (TournamentApp.Models.MatchType)reader.GetInt32("Type"),
+                    CreatedAt = reader.GetDateTime("CreatedAt"),
+                    HomeParticipant = homeParticipant,
+                    AwayParticipant = awayParticipant
+                };
+
+                matches.Add(match);
+            }
+
+            return matches;
         }
-        
+
         public async Task<Match?> GetMatchByIdAsync(int matchId)
         {
-            return await _context.Matches
-                .Include(m => m.HomeParticipant)
-                .Include(m => m.AwayParticipant)
-                .Include(m => m.Tournament)
-                .FirstOrDefaultAsync(m => m.Id == matchId);
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetMatchById", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@MatchId", matchId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var homeParticipant = new Participant 
+                { 
+                    Id = reader.GetInt32("HomeParticipantId"), 
+                    Name = reader.GetString("HomeParticipantName") 
+                };
+                var awayParticipant = new Participant 
+                { 
+                    Id = reader.GetInt32("AwayParticipantId"), 
+                    Name = reader.GetString("AwayParticipantName") 
+                };
+                var tournament = new Tournament 
+                { 
+                    Id = reader.GetInt32("TournamentId"), 
+                    Name = reader.GetString("TournamentName") 
+                };
+
+                return new Match
+                {
+                    Id = reader.GetInt32("Id"),
+                    TournamentId = reader.GetInt32("TournamentId"),
+                    HomeParticipantId = reader.GetInt32("HomeParticipantId"),
+                    AwayParticipantId = reader.GetInt32("AwayParticipantId"),
+                    HomeScore = reader.IsDBNull("HomeScore") ? null : reader.GetInt32("HomeScore"),
+                    AwayScore = reader.IsDBNull("AwayScore") ? null : reader.GetInt32("AwayScore"),
+                    PlayedAt = reader.IsDBNull("PlayedAt") ? null : reader.GetDateTime("PlayedAt"),
+                    IsCompleted = reader.GetBoolean("IsCompleted"),
+                    Type = (TournamentApp.Models.MatchType)reader.GetInt32("Type"),
+                    CreatedAt = reader.GetDateTime("CreatedAt"),
+                    HomeParticipant = homeParticipant,
+                    AwayParticipant = awayParticipant,
+                    Tournament = tournament
+                };
+            }
+
+            return null;
         }
-        
+
         public async Task<bool> UpdateMatchResultAsync(int matchId, int? homeScore, int? awayScore, bool isCompleted)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return false;
-            
-            match.HomeScore = homeScore;
-            match.AwayScore = awayScore;
-            match.IsCompleted = isCompleted;
-            match.PlayedAt = isCompleted ? DateTime.Now : null;
-            
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        
-        public async Task<List<ParticipantStanding>> GetTournamentStandingsAsync(int tournamentId)
-        {
-            var tournament = await _context.Tournaments
-                .Include(t => t.TournamentParticipants)
-                .ThenInclude(tp => tp.Participant)
-                .Include(t => t.Matches)
-                .FirstOrDefaultAsync(t => t.Id == tournamentId);
-            
-            if (tournament == null)
-                return new List<ParticipantStanding>();
-            
-            var standings = new List<ParticipantStanding>();
-            
-            foreach (var tp in tournament.TournamentParticipants)
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+
+            var match = await GetMatchByIdAsync(matchId);
+            if (match == null) return false;
+
+            using var command = new SqlCommand("sp_UpdateMatchResult", connection)
             {
-                var participant = tp.Participant;
-                var participantMatches = tournament.Matches
-                    .Where(m => m.HomeParticipantId == participant.Id || m.AwayParticipantId == participant.Id)
-                    .Where(m => m.IsCompleted)
-                    .ToList();
-                
-                var standing = new ParticipantStanding
-                {
-                    ParticipantId = participant.Id,
-                    ParticipantName = participant.Name,
-                    MatchesPlayed = participantMatches.Count,
-                    Wins = participantMatches.Count(m => 
-                        (m.HomeParticipantId == participant.Id && m.Result == MatchResult.HomeWin) ||
-                        (m.AwayParticipantId == participant.Id && m.Result == MatchResult.AwayWin)),
-                    Draws = participantMatches.Count(m => m.Result == MatchResult.Draw),
-                    Losses = participantMatches.Count(m => 
-                        (m.HomeParticipantId == participant.Id && m.Result == MatchResult.AwayWin) ||
-                        (m.AwayParticipantId == participant.Id && m.Result == MatchResult.HomeWin)),
-                    GoalsFor = participantMatches.Sum(m => 
-                        m.HomeParticipantId == participant.Id ? m.HomeScore ?? 0 : m.AwayScore ?? 0),
-                    GoalsAgainst = participantMatches.Sum(m => 
-                        m.HomeParticipantId == participant.Id ? m.AwayScore ?? 0 : m.HomeScore ?? 0)
-                };
-                
-                standings.Add(standing);
-            }
-            
-            return standings
-                .OrderByDescending(s => s.Points)
-                .ThenByDescending(s => s.GoalDifference)
-                .ThenByDescending(s => s.GoalsFor)
-                .ToList();
-        }
-        
-        public async Task<List<Participant>> GetAllParticipantsAsync()
-        {
-            return await _context.Participants
-                .OrderBy(p => p.Name)
-                .ToListAsync();
-        }
-        
-        public async Task<Participant> CreateParticipantAsync(Participant participant)
-        {
-            _context.Participants.Add(participant);
-            await _context.SaveChangesAsync();
-            return participant;
-        }
-        
-        public async Task<Participant?> GetParticipantByIdAsync(int id)
-        {
-            return await _context.Participants.FindAsync(id);
-        }
-        
-        public async Task<bool> UpdateParticipantAsync(int id, Participant participant)
-        {
-            var existingParticipant = await _context.Participants.FindAsync(id);
-            if (existingParticipant == null)
-                return false;
-            
-            existingParticipant.Name = participant.Name;
-            existingParticipant.Email = participant.Email;
-            existingParticipant.Phone = participant.Phone;
-            
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        
-        public async Task<bool> DeleteParticipantAsync(int id)
-        {
-            var participant = await _context.Participants
-                .Include(p => p.TournamentParticipants)
-                .Include(p => p.HomeMatches)
-                .Include(p => p.AwayMatches)
-                .FirstOrDefaultAsync(p => p.Id == id);
-            
-            if (participant == null)
-                return false;
-            
-            var hasCompletedMatches = participant.HomeMatches.Any(m => m.IsCompleted) || 
-                                    participant.AwayMatches.Any(m => m.IsCompleted);
-            
-            if (hasCompletedMatches)
-                return false;
-            
-            _context.Participants.Remove(participant);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        
-        public async Task<ParticipantStatistics> GetParticipantStatisticsAsync(int participantId)
-        {
-            var participant = await _context.Participants
-                .Include(p => p.TournamentParticipants)
-                .Include(p => p.HomeMatches.Where(m => m.IsCompleted))
-                .Include(p => p.AwayMatches.Where(m => m.IsCompleted))
-                .FirstOrDefaultAsync(p => p.Id == participantId);
-            
-            if (participant == null)
-                return new ParticipantStatistics();
-            
-            var allMatches = participant.HomeMatches.Concat(participant.AwayMatches).ToList();
-            var completedMatches = allMatches.Where(m => m.IsCompleted).ToList();
-            
-            var stats = new ParticipantStatistics
-            {
-                ParticipantId = participant.Id,
-                ParticipantName = participant.Name,
-                TotalTournaments = participant.TournamentParticipants.Count,
-                TotalMatches = completedMatches.Count,
-                TotalWins = completedMatches.Count(m => 
-                    (m.HomeParticipantId == participantId && m.Result == MatchResult.HomeWin) ||
-                    (m.AwayParticipantId == participantId && m.Result == MatchResult.AwayWin)),
-                TotalDraws = completedMatches.Count(m => m.Result == MatchResult.Draw),
-                TotalLosses = completedMatches.Count(m => 
-                    (m.HomeParticipantId == participantId && m.Result == MatchResult.AwayWin) ||
-                    (m.AwayParticipantId == participantId && m.Result == MatchResult.HomeWin)),
-                TotalGoalsScored = completedMatches.Sum(m => 
-                    m.HomeParticipantId == participantId ? m.HomeScore ?? 0 : m.AwayScore ?? 0),
-                TotalGoalsConceded = completedMatches.Sum(m => 
-                    m.HomeParticipantId == participantId ? m.AwayScore ?? 0 : m.HomeScore ?? 0)
+                CommandType = CommandType.StoredProcedure
             };
-            
-            return stats;
-        }
-        
-        public async Task<List<HeadToHeadStatistics>> GetHeadToHeadStatisticsAsync()
-        {
-            var participants = await _context.Participants.ToListAsync();
-            var headToHeadStats = new List<HeadToHeadStatistics>();
-            
-            for (int i = 0; i < participants.Count; i++)
+            command.Parameters.AddWithValue("@MatchId", matchId);
+            command.Parameters.AddWithValue("@HomeScore", (object?)homeScore ?? DBNull.Value);
+            command.Parameters.AddWithValue("@AwayScore", (object?)awayScore ?? DBNull.Value);
+            command.Parameters.AddWithValue("@IsCompleted", isCompleted);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            var success = reader.GetInt32("RowsAffected") > 0;
+
+
+            if (success && isCompleted && match.Type == TournamentApp.Models.MatchType.Playoff)
             {
-                for (int j = i + 1; j < participants.Count; j++)
+                try
                 {
-                    var participant1 = participants[i];
-                    var participant2 = participants[j];
-                    
-                    var matches = await _context.Matches
-                        .Where(m => m.IsCompleted && 
-                                   ((m.HomeParticipantId == participant1.Id && m.AwayParticipantId == participant2.Id) ||
-                                    (m.HomeParticipantId == participant2.Id && m.AwayParticipantId == participant1.Id)))
-                        .ToListAsync();
-                    
-                    if (matches.Any())
-                    {
-                        var stats = new HeadToHeadStatistics
-                        {
-                            Participant1Id = participant1.Id,
-                            Participant1Name = participant1.Name,
-                            Participant2Id = participant2.Id,
-                            Participant2Name = participant2.Name,
-                            TotalMatches = matches.Count,
-                            Participant1Wins = matches.Count(m => 
-                                (m.HomeParticipantId == participant1.Id && m.Result == MatchResult.HomeWin) ||
-                                (m.AwayParticipantId == participant1.Id && m.Result == MatchResult.AwayWin)),
-                            Participant2Wins = matches.Count(m => 
-                                (m.HomeParticipantId == participant2.Id && m.Result == MatchResult.HomeWin) ||
-                                (m.AwayParticipantId == participant2.Id && m.Result == MatchResult.AwayWin)),
-                            Draws = matches.Count(m => m.Result == MatchResult.Draw),
-                            Participant1Goals = matches.Sum(m => 
-                                m.HomeParticipantId == participant1.Id ? m.HomeScore ?? 0 : m.AwayScore ?? 0),
-                            Participant2Goals = matches.Sum(m => 
-                                m.HomeParticipantId == participant2.Id ? m.HomeScore ?? 0 : m.AwayScore ?? 0)
-                        };
-                        
-                        headToHeadStats.Add(stats);
-                    }
+                    await GenerateFinalAsync(match.TournamentId);
+                }
+                catch
+                {
+
                 }
             }
-            
+
+            return success;
+        }
+
+        #endregion
+
+        #region Participant Operations
+
+        public async Task<List<Participant>> GetAllParticipantsAsync()
+        {
+            var participants = new List<Participant>();
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetAllParticipants", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var participant = new Participant
+                {
+                    Id = reader.GetInt32("Id"),
+                    Name = reader.GetString("Name"),
+                    Email = reader.IsDBNull("Email") ? null : reader.GetString("Email"),
+                    Phone = reader.IsDBNull("Phone") ? null : reader.GetString("Phone"),
+                    CreatedAt = reader.GetDateTime("CreatedAt")
+                };
+
+                participants.Add(participant);
+            }
+
+            return participants;
+        }
+
+        public async Task<Participant> CreateParticipantAsync(Participant participant)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_CreateParticipant", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@Name", participant.Name);
+            command.Parameters.AddWithValue("@Email", (object?)participant.Email ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Phone", (object?)participant.Phone ?? DBNull.Value);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            participant.Id = reader.GetInt32("ParticipantId");
+            participant.CreatedAt = DateTime.Now;
+
+            return participant;
+        }
+
+        public async Task<Participant?> GetParticipantByIdAsync(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetParticipantById", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@ParticipantId", id);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new Participant
+                {
+                    Id = reader.GetInt32("Id"),
+                    Name = reader.GetString("Name"),
+                    Email = reader.IsDBNull("Email") ? null : reader.GetString("Email"),
+                    Phone = reader.IsDBNull("Phone") ? null : reader.GetString("Phone"),
+                    CreatedAt = reader.GetDateTime("CreatedAt")
+                };
+            }
+
+            return null;
+        }
+
+        public async Task<bool> UpdateParticipantAsync(int id, Participant participant)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_UpdateParticipant", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@ParticipantId", id);
+            command.Parameters.AddWithValue("@Name", participant.Name);
+            command.Parameters.AddWithValue("@Email", (object?)participant.Email ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Phone", (object?)participant.Phone ?? DBNull.Value);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            return reader.GetInt32("RowsAffected") > 0;
+        }
+
+        public async Task<bool> DeleteParticipantAsync(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_DeleteParticipant", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@ParticipantId", id);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            var rowsAffected = reader.GetInt32("RowsAffected");
+            var errorMessage = reader.GetString("ErrorMessage");
+
+            if (!string.IsNullOrEmpty(errorMessage))
+                return false;
+
+            return rowsAffected > 0;
+        }
+
+        #endregion
+
+        #region Statistics Operations
+
+        public async Task<List<ParticipantStanding>> GetTournamentStandingsAsync(int tournamentId)
+        {
+            var standings = new List<ParticipantStanding>();
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetTournamentStandings", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var standing = new ParticipantStanding
+                {
+                    ParticipantId = reader.GetInt32("ParticipantId"),
+                    ParticipantName = reader.GetString("ParticipantName"),
+                    MatchesPlayed = reader.GetInt32("MatchesPlayed"),
+                    Wins = reader.GetInt32("Wins"),
+                    Draws = reader.GetInt32("Draws"),
+                    Losses = reader.GetInt32("Losses"),
+                    GoalsFor = reader.GetInt32("GoalsFor"),
+                    GoalsAgainst = reader.GetInt32("GoalsAgainst")
+                };
+
+                standings.Add(standing);
+            }
+
+            return standings;
+        }
+
+        public async Task<ParticipantStatistics> GetParticipantStatisticsAsync(int participantId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetParticipantStatistics", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@ParticipantId", participantId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new ParticipantStatistics
+                {
+                    ParticipantId = reader.GetInt32("ParticipantId"),
+                    ParticipantName = reader.GetString("ParticipantName"),
+                    TotalTournaments = reader.GetInt32("TotalTournaments"),
+                    TotalMatches = reader.GetInt32("TotalMatches"),
+                    TotalWins = reader.GetInt32("TotalWins"),
+                    TotalDraws = reader.GetInt32("TotalDraws"),
+                    TotalLosses = reader.GetInt32("TotalLosses"),
+                    TotalGoalsScored = reader.GetInt32("TotalGoalsScored"),
+                    TotalGoalsConceded = reader.GetInt32("TotalGoalsConceded")
+                };
+            }
+
+            return new ParticipantStatistics();
+        }
+
+        public async Task<List<HeadToHeadStatistics>> GetHeadToHeadStatisticsAsync()
+        {
+            var headToHeadStats = new List<HeadToHeadStatistics>();
+
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GetHeadToHeadStatistics", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var stats = new HeadToHeadStatistics
+                {
+                    Participant1Id = reader.GetInt32("Participant1Id"),
+                    Participant1Name = reader.GetString("Participant1Name"),
+                    Participant2Id = reader.GetInt32("Participant2Id"),
+                    Participant2Name = reader.GetString("Participant2Name"),
+                    TotalMatches = reader.GetInt32("TotalMatches"),
+                    Participant1Wins = reader.GetInt32("Participant1Wins"),
+                    Participant2Wins = reader.GetInt32("Participant2Wins"),
+                    Draws = reader.GetInt32("Draws"),
+                    Participant1Goals = reader.GetInt32("Participant1Goals"),
+                    Participant2Goals = reader.GetInt32("Participant2Goals")
+                };
+
+                headToHeadStats.Add(stats);
+            }
+
             return headToHeadStats;
         }
-        
+
         public async Task<bool> GeneratePlayoffAsync(int tournamentId)
         {
-            var tournament = await GetTournamentByIdAsync(tournamentId);
-            if (tournament == null || tournament.PlayoffGenerated)
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GeneratePlayoff", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            var success = reader.GetInt32("Success");
+            var errorMessage = reader.GetString("ErrorMessage");
+
+            if (!string.IsNullOrEmpty(errorMessage))
                 return false;
-            
-            var standings = await GetTournamentStandingsAsync(tournamentId);
-            var participantCount = standings.Count;
-            
-            List<ParticipantStanding> playoffParticipants;
-            
-            if (participantCount >= 4)
-            {
-                playoffParticipants = standings.Take(4).ToList();
-                
-                var semifinal1 = new Match
-                {
-                    TournamentId = tournamentId,
-                    HomeParticipantId = playoffParticipants[0].ParticipantId,
-                    AwayParticipantId = playoffParticipants[3].ParticipantId,
-                    Type = TournamentApp.Models.MatchType.Playoff
-                };
-                
-                var semifinal2 = new Match
-                {
-                    TournamentId = tournamentId,
-                    HomeParticipantId = playoffParticipants[1].ParticipantId,
-                    AwayParticipantId = playoffParticipants[2].ParticipantId,
-                    Type = TournamentApp.Models.MatchType.Playoff
-                };
-                
-                _context.Matches.AddRange(semifinal1, semifinal2);
-            }
-            else if (participantCount >= 2)
-            {
-                playoffParticipants = standings.Take(2).ToList();
-                
-                var final = new Match
-                {
-                    TournamentId = tournamentId,
-                    HomeParticipantId = playoffParticipants[0].ParticipantId,
-                    AwayParticipantId = playoffParticipants[1].ParticipantId,
-                    Type = TournamentApp.Models.MatchType.Final
-                };
-                
-                _context.Matches.Add(final);
-            }
-            
-            tournament.PlayoffGenerated = true;
-            await _context.SaveChangesAsync();
-            return true;
+
+            return success == 1;
         }
+
+        public async Task<bool> GenerateFinalAsync(int tournamentId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GenerateFinal", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            await reader.ReadAsync();
+            var success = reader.GetInt32("Success");
+            var errorMessage = reader.GetString("ErrorMessage");
+
+            if (!string.IsNullOrEmpty(errorMessage))
+                return false;
+
+            return success == 1;
+        }
+
+        #endregion
     }
 } 
