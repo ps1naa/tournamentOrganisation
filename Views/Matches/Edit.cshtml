@@ -3,6 +3,21 @@
     var match = ViewBag.Match as TournamentApp.Models.Match;
 }
 
+<style>
+    .participant-name-box {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .participant-name-box h5 {
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+</style>
+
 <div class="row">
     <div class="col-md-6 offset-md-3">
         <div class="card">
@@ -18,10 +33,12 @@
                         <h4>@match.HomeParticipant.Name vs @match.AwayParticipant.Name</h4>
                     </div>
                     
-                    <div class="row">
+                    <div class="row align-items-end">
                         <div class="col-5">
                             <div class="text-center">
-                                <h5>@match.HomeParticipant.Name</h5>
+                                <div class="participant-name-box mb-2">
+                                    <h5 class="mb-0">@match.HomeParticipant.Name</h5>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label">Счет</label>
                                     <input name="homeScore" class="form-control form-control-lg text-center" 
@@ -31,11 +48,13 @@
                             </div>
                         </div>
                         <div class="col-2 d-flex align-items-center justify-content-center">
-                            <h2 class="text-muted">-</h2>
+                            <h2 class="text-muted mb-4">-</h2>
                         </div>
                         <div class="col-5">
                             <div class="text-center">
-                                <h5>@match.AwayParticipant.Name</h5>
+                                <div class="participant-name-box mb-2">
+                                    <h5 class="mb-0">@match.AwayParticipant.Name</h5>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label">Счет</label>
                                     <input name="awayScore" class="form-control form-control-lg text-center" 

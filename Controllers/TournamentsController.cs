@@ -196,5 +196,41 @@ namespace TournamentApp.Controllers
             
             return RedirectToAction(nameof(Matches), new { id });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateFinal(int id)
+        {
+            var success = await _tournamentService.GenerateFinalAsync(id);
+            if (!success)
+            {
+                TempData["Error"] = "Не удалось создать финальный матч. Возможно, он уже был создан.";
+            }
+            else
+            {
+                TempData["Success"] = "Финальный матч успешно создан!";
+            }
+            
+            return RedirectToAction(nameof(Matches), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateRandomGroupResults(int id)
+        {
+            var success = await _tournamentService.GenerateRandomGroupResultsAsync(id);
+            if (!success)
+            {
+                TempData["Error"] = "Не удалось сгенерировать случайные результаты. Возможно, все матчи уже завершены.";
+            }
+            else
+            {
+                TempData["Success"] = "Случайные результаты для групповых матчей успешно сгенерированы!";
+            }
+            
+            return RedirectToAction(nameof(Matches), new { id });
+        }
+
+
     }
 } 

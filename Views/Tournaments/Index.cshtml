@@ -61,6 +61,24 @@ else
                                 <i class="bi bi-people"></i> @tournament.TournamentParticipants.Count участников
                             </small>
                         </p>
+                        
+                        @if (tournament.IsCompleted)
+                        {
+                            <div class="alert alert-success py-2 mb-2">
+                                <i class="bi bi-check-circle"></i> <strong>Турнир завершен</strong>
+                                @if (tournament.Winner != null)
+                                {
+                                    <br>
+                                    <i class="bi bi-trophy text-warning"></i> <strong>Победитель:</strong> @tournament.Winner.Name
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info py-2 mb-2">
+                                <i class="bi bi-clock"></i> <strong>Турнир в процессе</strong>
+                            </div>
+                        }
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="btn-group" role="group">
                                 <a asp-action="Matches" asp-route-id="@tournament.Id" class="btn btn-outline-info btn-sm">

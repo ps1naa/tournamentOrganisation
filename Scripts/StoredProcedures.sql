@@ -4,13 +4,15 @@ AS
 BEGIN
     SELECT 
         t.Id, t.Name, t.StartDate, t.EndDate, t.Description, 
-        t.MatchesPerOpponent, t.IsCompleted, t.PlayoffGenerated, t.CreatedAt,
+        t.MatchesPerOpponent, t.IsCompleted, t.PlayoffGenerated, t.WinnerId, t.CreatedAt,
         p.Id as ParticipantId, p.Name as ParticipantName, p.Email as ParticipantEmail, 
         p.Phone as ParticipantPhone, p.CreatedAt as ParticipantCreatedAt,
-        tp.JoinedAt
+        tp.JoinedAt,
+        pw.Name as WinnerName
     FROM Tournaments t
     LEFT JOIN TournamentParticipants tp ON t.Id = tp.TournamentId
     LEFT JOIN Participants p ON tp.ParticipantId = p.Id
+    LEFT JOIN Participants pw ON t.WinnerId = pw.Id
     ORDER BY t.CreatedAt DESC
 END
 GO
@@ -23,27 +25,26 @@ BEGIN
 
     SELECT 
         t.Id, t.Name, t.StartDate, t.EndDate, t.Description, 
-        t.MatchesPerOpponent, t.IsCompleted, t.PlayoffGenerated, t.CreatedAt
+        t.MatchesPerOpponent, t.IsCompleted, t.PlayoffGenerated, t.WinnerId, t.CreatedAt,
+        pw.Name as WinnerName
     FROM Tournaments t
+    LEFT JOIN Participants pw ON t.WinnerId = pw.Id
     WHERE t.Id = @TournamentId
     
 
-    SELECT 
-        p.Id, p.Name, p.Email, p.Phone, p.CreatedAt,
-        tp.JoinedAt
+    SELECT DISTINCT
+        p.Id, p.Name, p.Email, p.Phone, p.CreatedAt, tp.JoinedAt
     FROM TournamentParticipants tp
     INNER JOIN Participants p ON tp.ParticipantId = p.Id
     WHERE tp.TournamentId = @TournamentId
     
 
     SELECT 
-        m.Id, m.TournamentId, m.HomeParticipantId, m.AwayParticipantId,
-        m.HomeScore, m.AwayScore, m.PlayedAt, m.IsCompleted, m.Type, m.CreatedAt,
-        hp.Name as HomeParticipantName, ap.Name as AwayParticipantName
-    FROM Matches m
-    INNER JOIN Participants hp ON m.HomeParticipantId = hp.Id
-    INNER JOIN Participants ap ON m.AwayParticipantId = ap.Id
-    WHERE m.TournamentId = @TournamentId
+        MatchId as Id, TournamentId, HomeParticipantId, AwayParticipantId,
+        HomeScore, AwayScore, PlayedAt, IsCompleted, Type, MatchCreatedAt as CreatedAt,
+        HomeParticipantName, AwayParticipantName
+    FROM vw_MatchDetails
+    WHERE TournamentId = @TournamentId
 END
 GO
 
@@ -184,14 +185,12 @@ CREATE OR ALTER PROCEDURE sp_GetTournamentMatches
 AS
 BEGIN
     SELECT 
-        m.Id, m.TournamentId, m.HomeParticipantId, m.AwayParticipantId,
-        m.HomeScore, m.AwayScore, m.PlayedAt, m.IsCompleted, m.Type, m.CreatedAt,
-        hp.Name as HomeParticipantName, ap.Name as AwayParticipantName
-    FROM Matches m
-    INNER JOIN Participants hp ON m.HomeParticipantId = hp.Id
-    INNER JOIN Participants ap ON m.AwayParticipantId = ap.Id
-    WHERE m.TournamentId = @TournamentId
-    ORDER BY m.CreatedAt
+        MatchId as Id, TournamentId, HomeParticipantId, AwayParticipantId,
+        HomeScore, AwayScore, PlayedAt, IsCompleted, Type, MatchCreatedAt as CreatedAt,
+        HomeParticipantName, AwayParticipantName
+    FROM vw_MatchDetails
+    WHERE TournamentId = @TournamentId
+    ORDER BY MatchCreatedAt
 END
 GO
 
@@ -201,15 +200,12 @@ CREATE OR ALTER PROCEDURE sp_GetMatchById
 AS
 BEGIN
     SELECT 
-        m.Id, m.TournamentId, m.HomeParticipantId, m.AwayParticipantId,
-        m.HomeScore, m.AwayScore, m.PlayedAt, m.IsCompleted, m.Type, m.CreatedAt,
-        hp.Name as HomeParticipantName, ap.Name as AwayParticipantName,
-        t.Name as TournamentName
-    FROM Matches m
-    INNER JOIN Participants hp ON m.HomeParticipantId = hp.Id
-    INNER JOIN Participants ap ON m.AwayParticipantId = ap.Id
-    INNER JOIN Tournaments t ON m.TournamentId = t.Id
-    WHERE m.Id = @MatchId
+        MatchId as Id, TournamentId, HomeParticipantId, AwayParticipantId,
+        HomeScore, AwayScore, PlayedAt, IsCompleted, Type, MatchCreatedAt as CreatedAt,
+        HomeParticipantName, AwayParticipantName,
+        TournamentName
+    FROM vw_MatchDetails
+    WHERE MatchId = @MatchId
 END
 GO
 
@@ -315,42 +311,19 @@ CREATE OR ALTER PROCEDURE sp_GetTournamentStandings
 AS
 BEGIN
     SELECT 
-        p.Id as ParticipantId,
-        p.Name as ParticipantName,
-        COUNT(m.Id) as MatchesPlayed,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p.Id AND m.HomeScore > m.AwayScore) OR 
-                 (m.AwayParticipantId = p.Id AND m.AwayScore > m.HomeScore) 
-            THEN 1 ELSE 0 END) as Wins,
-        SUM(CASE WHEN m.HomeScore = m.AwayScore THEN 1 ELSE 0 END) as Draws,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p.Id AND m.HomeScore < m.AwayScore) OR 
-                 (m.AwayParticipantId = p.Id AND m.AwayScore < m.HomeScore) 
-            THEN 1 ELSE 0 END) as Losses,
-        SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.HomeScore, 0) 
-                 ELSE ISNULL(m.AwayScore, 0) END) as GoalsFor,
-        SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.AwayScore, 0) 
-                 ELSE ISNULL(m.HomeScore, 0) END) as GoalsAgainst
-    FROM TournamentParticipants tp
-    INNER JOIN Participants p ON tp.ParticipantId = p.Id
-    LEFT JOIN Matches m ON m.TournamentId = @TournamentId 
-        AND (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
-        AND m.IsCompleted = 1
-    WHERE tp.TournamentId = @TournamentId
-    GROUP BY p.Id, p.Name
-    ORDER BY 
-        (SUM(CASE 
-            WHEN (m.HomeParticipantId = p.Id AND m.HomeScore > m.AwayScore) OR 
-                 (m.AwayParticipantId = p.Id AND m.AwayScore > m.HomeScore) 
-            THEN 3 
-            WHEN m.HomeScore = m.AwayScore THEN 1 
-            ELSE 0 END)) DESC,
-        (SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.HomeScore, 0) 
-                  ELSE ISNULL(m.AwayScore, 0) END) - 
-         SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.AwayScore, 0) 
-                  ELSE ISNULL(m.HomeScore, 0) END)) DESC,
-        SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.HomeScore, 0) 
-                 ELSE ISNULL(m.AwayScore, 0) END) DESC
+        ParticipantId,
+        ParticipantName,
+        MatchesPlayed,
+        Wins,
+        Draws,
+        Losses,
+        GoalsFor,
+        GoalsAgainst,
+        Points,
+        GoalDifference
+    FROM vw_TournamentStandings
+    WHERE TournamentId = @TournamentId
+    ORDER BY Points DESC, GoalDifference DESC, GoalsFor DESC
 END
 GO
 
@@ -360,29 +333,18 @@ CREATE OR ALTER PROCEDURE sp_GetParticipantStatistics
 AS
 BEGIN
     SELECT 
-        p.Id as ParticipantId,
-        p.Name as ParticipantName,
-        COUNT(DISTINCT tp.TournamentId) as TotalTournaments,
-        COUNT(m.Id) as TotalMatches,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p.Id AND m.HomeScore > m.AwayScore) OR 
-                 (m.AwayParticipantId = p.Id AND m.AwayScore > m.HomeScore) 
-            THEN 1 ELSE 0 END) as TotalWins,
-        SUM(CASE WHEN m.HomeScore = m.AwayScore THEN 1 ELSE 0 END) as TotalDraws,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p.Id AND m.HomeScore < m.AwayScore) OR 
-                 (m.AwayParticipantId = p.Id AND m.AwayScore < m.HomeScore) 
-            THEN 1 ELSE 0 END) as TotalLosses,
-        SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.HomeScore, 0) 
-                 ELSE ISNULL(m.AwayScore, 0) END) as TotalGoalsScored,
-        SUM(CASE WHEN m.HomeParticipantId = p.Id THEN ISNULL(m.AwayScore, 0) 
-                 ELSE ISNULL(m.HomeScore, 0) END) as TotalGoalsConceded
-    FROM Participants p
-    LEFT JOIN TournamentParticipants tp ON p.Id = tp.ParticipantId
-    LEFT JOIN Matches m ON (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
-        AND m.IsCompleted = 1
-    WHERE p.Id = @ParticipantId
-    GROUP BY p.Id, p.Name
+        ParticipantId,
+        ParticipantName,
+        TotalTournaments,
+        TournamentsWon,
+        TotalMatches,
+        TotalWins,
+        TotalDraws,
+        TotalLosses,
+        TotalGoalsScored,
+        TotalGoalsConceded
+    FROM vw_ParticipantStatistics
+    WHERE ParticipantId = @ParticipantId
 END
 GO
 
@@ -391,32 +353,17 @@ CREATE OR ALTER PROCEDURE sp_GetHeadToHeadStatistics
 AS
 BEGIN
     SELECT 
-        p1.Id as Participant1Id,
-        p1.Name as Participant1Name,
-        p2.Id as Participant2Id,
-        p2.Name as Participant2Name,
-        COUNT(m.Id) as TotalMatches,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p1.Id AND m.HomeScore > m.AwayScore) OR 
-                 (m.AwayParticipantId = p1.Id AND m.AwayScore > m.HomeScore) 
-            THEN 1 ELSE 0 END) as Participant1Wins,
-        SUM(CASE 
-            WHEN (m.HomeParticipantId = p2.Id AND m.HomeScore > m.AwayScore) OR 
-                 (m.AwayParticipantId = p2.Id AND m.AwayScore > m.HomeScore) 
-            THEN 1 ELSE 0 END) as Participant2Wins,
-        SUM(CASE WHEN m.HomeScore = m.AwayScore THEN 1 ELSE 0 END) as Draws,
-        SUM(CASE WHEN m.HomeParticipantId = p1.Id THEN ISNULL(m.HomeScore, 0) 
-                 ELSE ISNULL(m.AwayScore, 0) END) as Participant1Goals,
-        SUM(CASE WHEN m.HomeParticipantId = p2.Id THEN ISNULL(m.HomeScore, 0) 
-                 ELSE ISNULL(m.AwayScore, 0) END) as Participant2Goals
-    FROM Participants p1
-    CROSS JOIN Participants p2
-    LEFT JOIN Matches m ON m.IsCompleted = 1 
-        AND ((m.HomeParticipantId = p1.Id AND m.AwayParticipantId = p2.Id) OR
-             (m.HomeParticipantId = p2.Id AND m.AwayParticipantId = p1.Id))
-    WHERE p1.Id < p2.Id
-    GROUP BY p1.Id, p1.Name, p2.Id, p2.Name
-    HAVING COUNT(m.Id) > 0
+        Participant1Id,
+        Participant1Name,
+        Participant2Id,
+        Participant2Name,
+        TotalMatches,
+        Participant1Wins,
+        Participant2Wins,
+        Draws,
+        Participant1Goals,
+        Participant2Goals
+    FROM vw_HeadToHeadStatistics
 END
 GO
 
@@ -441,26 +388,9 @@ BEGIN
     INSERT INTO #TopParticipants
     SELECT TOP 4 
         ParticipantId,
-        ROW_NUMBER() OVER (ORDER BY 
-            SUM(CASE 
-                WHEN (m.HomeParticipantId = tp.ParticipantId AND m.HomeScore > m.AwayScore) OR 
-                     (m.AwayParticipantId = tp.ParticipantId AND m.AwayScore > m.HomeScore) 
-                THEN 3 
-                WHEN m.HomeScore = m.AwayScore THEN 1 
-                ELSE 0 END) DESC,
-            SUM(CASE WHEN m.HomeParticipantId = tp.ParticipantId THEN ISNULL(m.HomeScore, 0) 
-                     ELSE ISNULL(m.AwayScore, 0) END) - 
-            SUM(CASE WHEN m.HomeParticipantId = tp.ParticipantId THEN ISNULL(m.AwayScore, 0) 
-                     ELSE ISNULL(m.HomeScore, 0) END) DESC,
-            SUM(CASE WHEN m.HomeParticipantId = tp.ParticipantId THEN ISNULL(m.HomeScore, 0) 
-                     ELSE ISNULL(m.AwayScore, 0) END) DESC
-        ) as Position
-    FROM TournamentParticipants tp
-    LEFT JOIN Matches m ON m.TournamentId = @TournamentId 
-        AND (m.HomeParticipantId = tp.ParticipantId OR m.AwayParticipantId = tp.ParticipantId)
-        AND m.IsCompleted = 1
-    WHERE tp.TournamentId = @TournamentId
-    GROUP BY tp.ParticipantId
+        ROW_NUMBER() OVER (ORDER BY Points DESC, GoalDifference DESC, GoalsFor DESC) as Position
+    FROM vw_TournamentStandings
+    WHERE TournamentId = @TournamentId
     
     DECLARE @ParticipantCount INT = (SELECT COUNT(*) FROM #TopParticipants)
     
@@ -486,7 +416,6 @@ BEGIN
     END
     ELSE IF @ParticipantCount >= 2
     BEGIN
-        -- Создаем финал
         INSERT INTO Matches (TournamentId, HomeParticipantId, AwayParticipantId, Type, IsCompleted, CreatedAt)
         SELECT 
             @TournamentId,
@@ -553,15 +482,9 @@ BEGIN
         )
         
         INSERT INTO #Winners
-        SELECT 
-            CASE 
-                WHEN HomeScore > AwayScore THEN HomeParticipantId
-                WHEN AwayScore > HomeScore THEN AwayParticipantId
-                ELSE NULL
-            END
-        FROM #PlayoffMatches
-        WHERE HomeScore IS NOT NULL AND AwayScore IS NOT NULL
-        AND HomeScore <> AwayScore
+        SELECT WinnerId
+        FROM vw_PlayoffWinners
+        WHERE TournamentId = @TournamentId
         
 
         DECLARE @WinnerCount INT = (SELECT COUNT(*) FROM #Winners WHERE ParticipantId IS NOT NULL)
@@ -592,5 +515,143 @@ BEGIN
     END
     
     DROP TABLE #PlayoffMatches
+END
+GO 
+
+-- Процедура для автоматического завершения турнира
+CREATE OR ALTER PROCEDURE sp_AutoCompleteTournament
+    @TournamentId INT
+AS
+BEGIN
+    DECLARE @WinnerId INT = NULL;
+    DECLARE @IsCompleted BIT = 0;
+    
+    -- Проверяем, не завершен ли уже турнир
+    SELECT @IsCompleted = IsCompleted FROM Tournaments WHERE Id = @TournamentId;
+    IF @IsCompleted = 1 RETURN;
+    
+    -- Сначала проверяем финальный матч
+    SELECT @WinnerId = CASE 
+        WHEN HomeScore > AwayScore THEN HomeParticipantId
+        WHEN AwayScore > HomeScore THEN AwayParticipantId
+        ELSE NULL
+    END
+    FROM Matches 
+    WHERE TournamentId = @TournamentId 
+        AND Type = 2 
+        AND IsCompleted = 1 
+        AND HomeScore IS NOT NULL 
+        AND AwayScore IS NOT NULL
+        AND HomeScore <> AwayScore;
+    
+    -- Если финального матча нет или ничья, берем лидера по очкам
+    IF @WinnerId IS NULL
+    BEGIN
+        SELECT TOP 1 @WinnerId = ParticipantId 
+        FROM vw_TournamentStandings 
+        WHERE TournamentId = @TournamentId 
+        ORDER BY Points DESC, GoalDifference DESC, GoalsFor DESC;
+    END
+    
+    -- Обновляем турнир
+    IF @WinnerId IS NOT NULL
+    BEGIN
+        UPDATE Tournaments 
+        SET IsCompleted = 1, WinnerId = @WinnerId 
+        WHERE Id = @TournamentId;
+    END
+END
+GO
+
+-- Триггер для автоматического завершения турнира при завершении финального матча
+CREATE OR ALTER TRIGGER tr_AutoCompleteTournament
+ON Matches
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Проверяем, есть ли завершенные финальные матчи в обновленных записях
+    IF EXISTS (
+        SELECT 1 
+        FROM inserted i
+        INNER JOIN deleted d ON i.Id = d.Id
+        WHERE i.Type = 2 
+            AND i.IsCompleted = 1 
+            AND d.IsCompleted = 0
+            AND i.HomeScore IS NOT NULL 
+            AND i.AwayScore IS NOT NULL
+    )
+    BEGIN
+        -- Для каждого турнира с завершенным финалом
+        DECLARE @TournamentId INT;
+        DECLARE tournament_cursor CURSOR FOR
+        SELECT DISTINCT i.TournamentId
+        FROM inserted i
+        INNER JOIN deleted d ON i.Id = d.Id
+        WHERE i.Type = 2 
+            AND i.IsCompleted = 1 
+            AND d.IsCompleted = 0;
+        
+        OPEN tournament_cursor;
+        FETCH NEXT FROM tournament_cursor INTO @TournamentId;
+        
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC sp_AutoCompleteTournament @TournamentId;
+            FETCH NEXT FROM tournament_cursor INTO @TournamentId;
+        END
+        
+        CLOSE tournament_cursor;
+        DEALLOCATE tournament_cursor;
+    END
+END
+GO 
+
+-- Процедура для генерации случайных результатов групповых матчей
+CREATE OR ALTER PROCEDURE sp_GenerateRandomGroupResults
+    @TournamentId INT
+AS
+BEGIN
+    DECLARE @MatchId INT;
+    DECLARE @HomeScore INT;
+    DECLARE @AwayScore INT;
+    DECLARE @UpdatedCount INT = 0;
+    
+    -- Курсор для перебора незавершенных матчей группового этапа
+    DECLARE match_cursor CURSOR FOR
+    SELECT Id
+    FROM Matches
+    WHERE TournamentId = @TournamentId 
+        AND Type = 0 
+        AND IsCompleted = 0;
+    
+    OPEN match_cursor;
+    FETCH NEXT FROM match_cursor INTO @MatchId;
+    
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        -- Генерируем случайные результаты (0-5 голов)
+        SET @HomeScore = ABS(CHECKSUM(NEWID()) % 6);
+        SET @AwayScore = ABS(CHECKSUM(NEWID()) % 6);
+        
+        -- Обновляем матч
+        UPDATE Matches 
+        SET HomeScore = @HomeScore,
+            AwayScore = @AwayScore,
+            IsCompleted = 1,
+            PlayedAt = GETDATE()
+        WHERE Id = @MatchId;
+        
+        SET @UpdatedCount = @UpdatedCount + 1;
+        
+        FETCH NEXT FROM match_cursor INTO @MatchId;
+    END
+    
+    CLOSE match_cursor;
+    DEALLOCATE match_cursor;
+    
+    -- Возвращаем количество обновленных матчей
+    SELECT @UpdatedCount as UpdatedMatches;
 END
 GO 

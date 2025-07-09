@@ -45,6 +45,7 @@ INNER JOIN Participants ap ON m.AwayParticipantId = ap.Id
 INNER JOIN Tournaments t ON m.TournamentId = t.Id
 GO
 
+-- Представление для турнирной таблицы
 CREATE OR ALTER VIEW vw_TournamentStandings
 AS
 SELECT 
@@ -80,6 +81,7 @@ INNER JOIN Participants p ON tp.ParticipantId = p.Id
 LEFT JOIN Matches m ON m.TournamentId = tp.TournamentId 
     AND (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
     AND m.IsCompleted = 1
+    AND m.Type = 0
 GROUP BY tp.TournamentId, p.Id, p.Name
 GO
 
@@ -92,6 +94,7 @@ SELECT
     p.Phone,
     p.CreatedAt,
     COUNT(DISTINCT tp.TournamentId) as TotalTournaments,
+    COUNT(DISTINCT CASE WHEN t.WinnerId = p.Id THEN t.Id END) as TournamentsWon,
     COUNT(m.Id) as TotalMatches,
     SUM(CASE 
         WHEN (m.HomeParticipantId = p.Id AND m.HomeScore > m.AwayScore) OR 
@@ -114,6 +117,7 @@ SELECT
         ELSE 0 END) as TotalPoints
 FROM Participants p
 LEFT JOIN TournamentParticipants tp ON p.Id = tp.ParticipantId
+LEFT JOIN Tournaments t ON tp.TournamentId = t.Id
 LEFT JOIN Matches m ON (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
     AND m.IsCompleted = 1
 GROUP BY p.Id, p.Name, p.Email, p.Phone, p.CreatedAt

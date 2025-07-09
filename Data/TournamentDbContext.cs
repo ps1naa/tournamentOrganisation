@@ -47,6 +47,12 @@ namespace TournamentApp.Data
                 .WithMany(p => p.AwayMatches)
                 .HasForeignKey(m => m.AwayParticipantId)
                 .OnDelete(DeleteBehavior.Restrict);
+                
+            modelBuilder.Entity<Tournament>()
+                .HasOne(t => t.Winner)
+                .WithMany()
+                .HasForeignKey(t => t.WinnerId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 } 

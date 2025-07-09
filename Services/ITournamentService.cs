@@ -22,6 +22,8 @@ namespace TournamentApp.Services
         Task<List<HeadToHeadStatistics>> GetHeadToHeadStatisticsAsync();
         Task<bool> GeneratePlayoffAsync(int tournamentId);
         Task<bool> GenerateFinalAsync(int tournamentId);
+        Task<bool> SetTournamentWinnerAsync(int tournamentId, int winnerId);
+        Task<bool> GenerateRandomGroupResultsAsync(int tournamentId);
     }
     
     public class ParticipantStanding
@@ -34,7 +36,7 @@ namespace TournamentApp.Services
         public int Losses { get; set; }
         public int GoalsFor { get; set; }
         public int GoalsAgainst { get; set; }
-        public int GoalDifference => GoalsFor - GoalsAgainst;
-        public int Points => (Wins * 3) + Draws;
+        public int Points { get; set; }
+        public int GoalDifference { get; set; }
     }
 } 

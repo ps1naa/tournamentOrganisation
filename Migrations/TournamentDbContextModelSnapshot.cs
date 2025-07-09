@@ -131,7 +131,12 @@ namespace TournamentApp.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("WinnerId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("WinnerId");
 
                     b.ToTable("Tournaments");
                 });
@@ -179,6 +184,16 @@ namespace TournamentApp.Migrations
                     b.Navigation("HomeParticipant");
 
                     b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("TournamentApp.Models.Tournament", b =>
+                {
+                    b.HasOne("TournamentApp.Models.Participant", "Winner")
+                        .WithMany()
+                        .HasForeignKey("WinnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Winner");
                 });
 
             modelBuilder.Entity("TournamentApp.Models.TournamentParticipant", b =>

@@ -25,9 +25,12 @@ namespace TournamentApp.Models
         
         public bool PlayoffGenerated { get; set; } = false;
         
+        public int? WinnerId { get; set; }
+        
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         
         public ICollection<TournamentParticipant> TournamentParticipants { get; set; } = new List<TournamentParticipant>();
         public ICollection<Match> Matches { get; set; } = new List<Match>();
+        public Participant? Winner { get; set; }
     }
 } 

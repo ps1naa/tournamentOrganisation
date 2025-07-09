@@ -50,6 +50,7 @@ namespace TournamentApp.Services
                         MatchesPerOpponent = reader.GetInt32("MatchesPerOpponent"),
                         IsCompleted = reader.GetBoolean("IsCompleted"),
                         PlayoffGenerated = reader.GetBoolean("PlayoffGenerated"),
+                        WinnerId = reader.IsDBNull("WinnerId") ? null : reader.GetInt32("WinnerId"),
                         CreatedAt = reader.GetDateTime("CreatedAt"),
                         TournamentParticipants = new List<TournamentParticipant>()
                     };
@@ -79,6 +80,34 @@ namespace TournamentApp.Services
                     };
 
                     tournamentDict[tournamentId].TournamentParticipants.Add(tournamentParticipant);
+                }
+
+                var currentTournament = tournamentDict[tournamentId];
+                if (!reader.IsDBNull("WinnerId") && currentTournament.Winner == null)
+                {
+                    var winnerId = reader.GetInt32("WinnerId");
+                    var winnerParticipant = currentTournament.TournamentParticipants.FirstOrDefault(tp => tp.ParticipantId == winnerId);
+                    if (winnerParticipant != null)
+                    {
+                        currentTournament.Winner = winnerParticipant.Participant;
+                    }
+                    else
+                    {
+                        try 
+                        {
+                            if (!reader.IsDBNull("WinnerName"))
+                            {
+                                currentTournament.Winner = new Participant
+                                {
+                                    Id = winnerId,
+                                    Name = reader.GetString("WinnerName")
+                                };
+                            }
+                        }
+                        catch (InvalidOperationException)
+                        {
+                        }
+                    }
                 }
             }
 
@@ -113,10 +142,29 @@ namespace TournamentApp.Services
                     MatchesPerOpponent = reader.GetInt32("MatchesPerOpponent"),
                     IsCompleted = reader.GetBoolean("IsCompleted"),
                     PlayoffGenerated = reader.GetBoolean("PlayoffGenerated"),
+                    WinnerId = reader.IsDBNull("WinnerId") ? null : reader.GetInt32("WinnerId"),
                     CreatedAt = reader.GetDateTime("CreatedAt"),
                     TournamentParticipants = new List<TournamentParticipant>(),
                     Matches = new List<Match>()
                 };
+
+                if (!reader.IsDBNull("WinnerId"))
+                {
+                    try
+                    {
+                        if (!reader.IsDBNull("WinnerName"))
+                        {
+                            tournament.Winner = new Participant
+                            {
+                                Id = reader.GetInt32("WinnerId"),
+                                Name = reader.GetString("WinnerName")
+                            };
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                }
             }
 
             if (tournament == null) return null;
@@ -148,6 +196,15 @@ namespace TournamentApp.Services
                 }
             }
 
+            if (tournament.WinnerId.HasValue && tournament.Winner == null)
+            {
+                var winner = tournament.TournamentParticipants
+                    .FirstOrDefault(tp => tp.ParticipantId == tournament.WinnerId.Value);
+                if (winner != null)
+                {
+                    tournament.Winner = winner.Participant;
+                }
+            }
 
             if (await reader.NextResultAsync())
             {
@@ -386,7 +443,6 @@ namespace TournamentApp.Services
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync();
 
-
             var match = await GetMatchByIdAsync(matchId);
             if (match == null) return false;
 
@@ -403,20 +459,90 @@ namespace TournamentApp.Services
             await reader.ReadAsync();
             var success = reader.GetInt32("RowsAffected") > 0;
 
-
-            if (success && isCompleted && match.Type == TournamentApp.Models.MatchType.Playoff)
+            if (success && isCompleted)
             {
-                try
+                if (match.Type == TournamentApp.Models.MatchType.Playoff)
                 {
-                    await GenerateFinalAsync(match.TournamentId);
+                    try
+                    {
+                        await GenerateFinalAsync(match.TournamentId);
+                    }
+                    catch
+                    {
+                    }
                 }
-                catch
+                else if (match.Type == TournamentApp.Models.MatchType.Final)
                 {
-
+                    await CompleteTournamentAsync(match.TournamentId);
                 }
             }
 
             return success;
+        }
+
+        private async Task CompleteTournamentAsync(int tournamentId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            int? winnerId = null;
+
+            using var finalCommand = new SqlCommand(@"
+                SELECT HomeParticipantId, AwayParticipantId, HomeScore, AwayScore
+                FROM Matches 
+                WHERE TournamentId = @TournamentId 
+                    AND Type = 2 
+                    AND IsCompleted = 1 
+                    AND HomeScore IS NOT NULL 
+                    AND AwayScore IS NOT NULL", connection);
+            finalCommand.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var finalReader = await finalCommand.ExecuteReaderAsync();
+            if (await finalReader.ReadAsync())
+            {
+                var homeScore = finalReader.GetInt32("HomeScore");
+                var awayScore = finalReader.GetInt32("AwayScore");
+                var homeParticipantId = finalReader.GetInt32("HomeParticipantId");
+                var awayParticipantId = finalReader.GetInt32("AwayParticipantId");
+
+                if (homeScore > awayScore)
+                {
+                    winnerId = homeParticipantId;
+                }
+                else if (awayScore > homeScore)
+                {
+                    winnerId = awayParticipantId;
+                }
+            }
+            finalReader.Close();
+
+            if (winnerId == null)
+            {
+                using var standingsCommand = new SqlCommand(@"
+                    SELECT TOP 1 ParticipantId 
+                    FROM vw_TournamentStandings 
+                    WHERE TournamentId = @TournamentId 
+                    ORDER BY Points DESC, GoalDifference DESC, GoalsFor DESC", connection);
+                standingsCommand.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+                var result = await standingsCommand.ExecuteScalarAsync();
+                if (result != null)
+                {
+                    winnerId = (int)result;
+                }
+            }
+
+            if (winnerId.HasValue)
+            {
+                using var updateCommand = new SqlCommand(@"
+                    UPDATE Tournaments 
+                    SET IsCompleted = 1, WinnerId = @WinnerId 
+                    WHERE Id = @TournamentId", connection);
+                updateCommand.Parameters.AddWithValue("@TournamentId", tournamentId);
+                updateCommand.Parameters.AddWithValue("@WinnerId", winnerId.Value);
+
+                await updateCommand.ExecuteNonQueryAsync();
+            }
         }
 
         #endregion
@@ -571,7 +697,9 @@ namespace TournamentApp.Services
                     Draws = reader.GetInt32("Draws"),
                     Losses = reader.GetInt32("Losses"),
                     GoalsFor = reader.GetInt32("GoalsFor"),
-                    GoalsAgainst = reader.GetInt32("GoalsAgainst")
+                    GoalsAgainst = reader.GetInt32("GoalsAgainst"),
+                    Points = reader.GetInt32("Points"),
+                    GoalDifference = reader.GetInt32("GoalDifference")
                 };
 
                 standings.Add(standing);
@@ -599,6 +727,7 @@ namespace TournamentApp.Services
                     ParticipantId = reader.GetInt32("ParticipantId"),
                     ParticipantName = reader.GetString("ParticipantName"),
                     TotalTournaments = reader.GetInt32("TotalTournaments"),
+                    TournamentsWon = reader.GetInt32("TournamentsWon"),
                     TotalMatches = reader.GetInt32("TotalMatches"),
                     TotalWins = reader.GetInt32("TotalWins"),
                     TotalDraws = reader.GetInt32("TotalDraws"),
@@ -688,6 +817,45 @@ namespace TournamentApp.Services
                 return false;
 
             return success == 1;
+        }
+
+
+
+        public async Task<bool> SetTournamentWinnerAsync(int tournamentId, int winnerId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand(@"
+                UPDATE Tournaments 
+                SET WinnerId = @WinnerId, IsCompleted = 1 
+                WHERE Id = @TournamentId", connection);
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+            command.Parameters.AddWithValue("@WinnerId", winnerId);
+
+            var result = await command.ExecuteNonQueryAsync();
+            return result > 0;
+        }
+
+        public async Task<bool> GenerateRandomGroupResultsAsync(int tournamentId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var command = new SqlCommand("sp_GenerateRandomGroupResults", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.AddWithValue("@TournamentId", tournamentId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var updatedMatches = reader.GetInt32("UpdatedMatches");
+                return updatedMatches > 0;
+            }
+
+            return false;
         }
 
         #endregion

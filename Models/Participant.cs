@@ -32,6 +32,7 @@ namespace TournamentApp.Models
         public int ParticipantId { get; set; }
         public string ParticipantName { get; set; } = string.Empty;
         public int TotalTournaments { get; set; }
+        public int TournamentsWon { get; set; }
         public int TotalMatches { get; set; }
         public int TotalWins { get; set; }
         public int TotalDraws { get; set; }
