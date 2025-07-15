@@ -518,7 +518,7 @@ BEGIN
 END
 GO 
 
--- Процедура для автоматического завершения турнира
+
 CREATE OR ALTER PROCEDURE sp_AutoCompleteTournament
     @TournamentId INT
 AS
@@ -526,11 +526,11 @@ BEGIN
     DECLARE @WinnerId INT = NULL;
     DECLARE @IsCompleted BIT = 0;
     
-    -- Проверяем, не завершен ли уже турнир
+
     SELECT @IsCompleted = IsCompleted FROM Tournaments WHERE Id = @TournamentId;
     IF @IsCompleted = 1 RETURN;
     
-    -- Сначала проверяем финальный матч
+
     SELECT @WinnerId = CASE 
         WHEN HomeScore > AwayScore THEN HomeParticipantId
         WHEN AwayScore > HomeScore THEN AwayParticipantId
@@ -544,7 +544,7 @@ BEGIN
         AND AwayScore IS NOT NULL
         AND HomeScore <> AwayScore;
     
-    -- Если финального матча нет или ничья, берем лидера по очкам
+
     IF @WinnerId IS NULL
     BEGIN
         SELECT TOP 1 @WinnerId = ParticipantId 
@@ -553,7 +553,7 @@ BEGIN
         ORDER BY Points DESC, GoalDifference DESC, GoalsFor DESC;
     END
     
-    -- Обновляем турнир
+
     IF @WinnerId IS NOT NULL
     BEGIN
         UPDATE Tournaments 
@@ -563,7 +563,7 @@ BEGIN
 END
 GO
 
--- Триггер для автоматического завершения турнира при завершении финального матча
+
 CREATE OR ALTER TRIGGER tr_AutoCompleteTournament
 ON Matches
 AFTER UPDATE
@@ -571,7 +571,6 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Проверяем, есть ли завершенные финальные матчи в обновленных записях
     IF EXISTS (
         SELECT 1 
         FROM inserted i
@@ -583,7 +582,7 @@ BEGIN
             AND i.AwayScore IS NOT NULL
     )
     BEGIN
-        -- Для каждого турнира с завершенным финалом
+
         DECLARE @TournamentId INT;
         DECLARE tournament_cursor CURSOR FOR
         SELECT DISTINCT i.TournamentId
@@ -608,7 +607,7 @@ BEGIN
 END
 GO 
 
--- Процедура для генерации случайных результатов групповых матчей
+
 CREATE OR ALTER PROCEDURE sp_GenerateRandomGroupResults
     @TournamentId INT
 AS
@@ -618,7 +617,7 @@ BEGIN
     DECLARE @AwayScore INT;
     DECLARE @UpdatedCount INT = 0;
     
-    -- Курсор для перебора незавершенных матчей группового этапа
+
     DECLARE match_cursor CURSOR FOR
     SELECT Id
     FROM Matches
@@ -631,11 +630,11 @@ BEGIN
     
     WHILE @@FETCH_STATUS = 0
     BEGIN
-        -- Генерируем случайные результаты (0-5 голов)
+
         SET @HomeScore = ABS(CHECKSUM(NEWID()) % 6);
         SET @AwayScore = ABS(CHECKSUM(NEWID()) % 6);
         
-        -- Обновляем матч
+
         UPDATE Matches 
         SET HomeScore = @HomeScore,
             AwayScore = @AwayScore,
@@ -651,7 +650,6 @@ BEGIN
     CLOSE match_cursor;
     DEALLOCATE match_cursor;
     
-    -- Возвращаем количество обновленных матчей
     SELECT @UpdatedCount as UpdatedMatches;
 END
 GO 

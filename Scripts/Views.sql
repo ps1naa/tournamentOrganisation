@@ -45,7 +45,6 @@ INNER JOIN Participants ap ON m.AwayParticipantId = ap.Id
 INNER JOIN Tournaments t ON m.TournamentId = t.Id
 GO
 
--- Представление для турнирной таблицы
 CREATE OR ALTER VIEW vw_TournamentStandings
 AS
 SELECT 
@@ -118,7 +117,8 @@ SELECT
 FROM Participants p
 LEFT JOIN TournamentParticipants tp ON p.Id = tp.ParticipantId
 LEFT JOIN Tournaments t ON tp.TournamentId = t.Id
-LEFT JOIN Matches m ON (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
+LEFT JOIN Matches m ON m.TournamentId = tp.TournamentId 
+    AND (m.HomeParticipantId = p.Id OR m.AwayParticipantId = p.Id)
     AND m.IsCompleted = 1
 GROUP BY p.Id, p.Name, p.Email, p.Phone, p.CreatedAt
 GO
